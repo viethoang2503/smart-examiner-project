@@ -1,34 +1,42 @@
 # FocusGuard - AI Proctoring System
 
-Hệ thống giám sát thi cử sử dụng AI để phát hiện hành vi gian lận thời gian thực.
+**English** | [Tiếng Việt](#tiếng-việt)
 
-## Tính năng
+---
 
-- **Nhận diện khuôn mặt** với MediaPipe Face Mesh
-- **Phát hiện hành vi**: Nhìn trái/phải, cúi đầu, nói chuyện
-- **Giám sát thời gian thực** qua WebSocket
-- **Dashboard web** cho giáo viên
-- **Chụp ảnh vi phạm** làm bằng chứng
-- **Quản lý bài thi** với mã code 6 ký tự
+## English
 
-## Cài đặt nhanh
+### Overview
+FocusGuard is an AI-powered exam proctoring system that detects cheating behaviors in real-time using computer vision and machine learning.
 
-### Linux/macOS
+### Features
+- **Face Detection** - MediaPipe Face Mesh with 468 landmarks
+- **Behavior Detection** - Looking left/right, head down, talking
+- **Real-time Monitoring** - WebSocket-based live updates
+- **Web Dashboard** - Teacher monitoring interface
+- **Violation Evidence** - Screenshot capture on detection
+- **Exam Management** - 6-character exam codes
+
+### Quick Start
+
 ```bash
+# Clone repository
+git clone https://github.com/viethoang2503/smart-examiner-project.git
+cd smart-examiner-project
+
+# Setup (Linux/macOS)
 chmod +x deploy.sh
 ./deploy.sh install
-./deploy.sh server   # Chạy server
-./deploy.sh client   # Chạy client (terminal khác)
-```
+./deploy.sh server   # Run server
+./deploy.sh client   # Run client (new terminal)
 
-### Windows
-```cmd
+# Setup (Windows)
 deploy.bat install
-deploy.bat server    :: Chạy server
-deploy.bat client    :: Chạy client (terminal khác)
+deploy.bat server
+deploy.bat client
 ```
 
-## Cấu trúc Project
+### Project Structure
 
 ```
 focusguard/
@@ -43,20 +51,72 @@ focusguard/
 └── docs/             # Documentation
 ```
 
-## Tài liệu
+### Performance
 
-- [Hướng dẫn Cài đặt](docs/INSTALLATION.md)
-- [Hướng dẫn Giáo viên](docs/USER_MANUAL_TEACHER.md)
-- [Hướng dẫn Sinh viên](docs/USER_MANUAL_STUDENT.md)
-
-## Hiệu năng
-
-| Metric | Giá trị |
-|--------|---------|
+| Metric | Value |
+|--------|-------|
 | Latency | 37ms avg |
 | FPS | 27 fps |
 | Detection Rate | 100% |
 
+### Documentation
+- [Installation Guide](docs/INSTALLATION.md)
+- [Teacher Manual](docs/USER_MANUAL_TEACHER.md)
+- [Student Manual](docs/USER_MANUAL_STUDENT.md)
+
+---
+
+## Tiếng Việt
+
+### Giới thiệu
+FocusGuard là hệ thống giám sát thi cử sử dụng AI để phát hiện hành vi gian lận theo thời gian thực bằng thị giác máy tính và học máy.
+
+### Tính năng
+- **Nhận diện khuôn mặt** - MediaPipe Face Mesh với 468 điểm landmark
+- **Phát hiện hành vi** - Nhìn trái/phải, cúi đầu, nói chuyện
+- **Giám sát thời gian thực** - Cập nhật trực tiếp qua WebSocket
+- **Dashboard web** - Giao diện giám sát cho giáo viên
+- **Bằng chứng vi phạm** - Chụp ảnh khi phát hiện vi phạm
+- **Quản lý bài thi** - Mã bài thi 6 ký tự
+
+### Cài đặt nhanh
+
+```bash
+# Clone repository
+git clone https://github.com/viethoang2503/smart-examiner-project.git
+cd smart-examiner-project
+
+# Cài đặt (Linux/macOS)
+chmod +x deploy.sh
+./deploy.sh install
+./deploy.sh server   # Chạy server
+./deploy.sh client   # Chạy client (terminal mới)
+
+# Cài đặt (Windows)
+deploy.bat install
+deploy.bat server
+deploy.bat client
+```
+
+### Hiệu năng
+
+| Chỉ số | Giá trị |
+|--------|---------|
+| Độ trễ | 37ms trung bình |
+| FPS | 27 khung/giây |
+| Tỷ lệ phát hiện | 100% |
+
+### Tài liệu
+- [Hướng dẫn Cài đặt](docs/INSTALLATION.md)
+- [Hướng dẫn Giáo viên](docs/USER_MANUAL_TEACHER.md)
+- [Hướng dẫn Sinh viên](docs/USER_MANUAL_STUDENT.md)
+
+---
+
 ## License
 
 MIT License
+
+## Author
+
+Viet Hoang - USTH 2026
