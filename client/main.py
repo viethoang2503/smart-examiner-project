@@ -23,6 +23,7 @@ from PyQt6.QtGui import QIcon, QPixmap, QAction, QColor, QPainter
 
 from client.ai_engine import FaceDetector, GeometryCalculator, BehaviorClassifier, ViolationDetector
 from client.network import SyncWebSocketClient
+from client.anti_cheat import get_anti_cheat_monitor, CheatViolation, CheatEvent
 from shared.constants import Config, BehaviorLabel, VIOLATION_MESSAGES, StatusColor
 
 
@@ -229,6 +230,10 @@ class FocusGuardTray(QSystemTrayIcon):
             student_id=student_id
         )
         
+        # Initialize anti-cheat monitor
+        self.anti_cheat = get_anti_cheat_monitor(on_violation=self.on_anticheat_violation)
+        self.anti_cheat.enable_focus_lock = True  # Restore focus when lost
+        
         # Setup tray icon
         self.setup_tray()
         
@@ -308,6 +313,9 @@ class FocusGuardTray(QSystemTrayIcon):
         
         # Start proctoring engine
         self.engine.start()
+        
+        # Start anti-cheat monitoring (no window target for tray app)
+        self.anti_cheat.start_monitoring()
     
     def update_connection_status(self):
         """Update connection status in menu"""
@@ -335,8 +343,40 @@ class FocusGuardTray(QSystemTrayIcon):
             3000
         )
     
+    def on_anticheat_violation(self, violation: CheatViolation):
+        """Handle anti-cheat violation detection"""
+        self.violation_count += 1
+        self.violation_action.setText(f"Violations: {self.violation_count}")
+        
+        # Map cheat event to behavior label for reporting
+        event_to_label = {
+            CheatEvent.WINDOW_FOCUS_LOST: "Window Focus Lost",
+            CheatEvent.ALT_TAB_DETECTED: "Alt+Tab Detected",
+            CheatEvent.MINIMIZE_DETECTED: "Window Minimized",
+            CheatEvent.MULTIPLE_MONITORS: "Multiple Monitors",
+        }
+        
+        behavior_name = event_to_label.get(violation.event_type, violation.event_type.value)
+        
+        # Send to server
+        if self.ws_client.is_connected:
+            self.ws_client.send_violation(
+                behavior=99,  # Special code for anti-cheat violations
+                confidence=1.0,
+                behavior_name=f"[AntiCheat] {behavior_name}"
+            )
+        
+        # Show notification
+        self.showMessage(
+            "FocusGuard Security Alert",
+            f"Anti-cheat: {behavior_name}",
+            QSystemTrayIcon.MessageIcon.Critical,
+            5000
+        )
+    
     def quit(self):
         """Clean shutdown"""
+        self.anti_cheat.stop_monitoring()
         self.engine.stop()
         self.ws_client.stop()
         self.connection_timer.stop()

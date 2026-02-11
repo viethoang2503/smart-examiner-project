@@ -20,6 +20,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from shared.constants import Config, MessageType, VIOLATION_MESSAGES
 from server.auth_routes import router as auth_router, init_auth
 from server.exam_routes import router as exam_router
+from server.report_routes import router as report_router
 
 
 # ==================== DATA MODELS ====================
@@ -171,6 +172,7 @@ app.add_middleware(
 # Register auth routes
 app.include_router(auth_router)
 app.include_router(exam_router)
+app.include_router(report_router)
 
 # Mount uploads directory for serving violation screenshots
 from fastapi.staticfiles import StaticFiles
