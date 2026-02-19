@@ -59,7 +59,7 @@ def main():
     print("\n" + "=" * 70)
     print("INSTRUCTIONS:")
     print("  - Look at the camera to see your behavior being analyzed")
-    print("  - Try looking left/right, looking down, or talking")
+    print("  - Try looking left/right or looking down")
     print("  - Press 'q' to quit")
     print("=" * 70 + "\n")
     
@@ -79,6 +79,9 @@ def main():
             if not ret:
                 break
             
+            # Mirror the camera (flip horizontally)
+            frame = cv2.flip(frame, 1)
+            
             frame_count += 1
             
             # Detect face landmarks
@@ -96,6 +99,12 @@ def main():
                 features, iris_gaze = geometry.extract_all_features(normalized_landmarks)
                 pitch, yaw, roll, eye_ratio, mar = features
                 h_gaze, v_gaze = iris_gaze
+                
+                # Flip yaw and horizontal gaze to match mirrored camera
+                yaw = -yaw
+                h_gaze = -h_gaze
+                features = np.array([pitch, yaw, roll, eye_ratio, mar])
+                iris_gaze = (h_gaze, v_gaze)
                 
                 # Classify behavior (with iris gaze)
                 is_violation, label, confidence = violation_detector.detect(features, iris_gaze)

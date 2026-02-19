@@ -378,21 +378,16 @@ class GeometryCalculator:
             thresholds: Optional custom thresholds
             
         Returns:
-            Behavior label: 'NORMAL', 'LOOKING_LEFT', 'LOOKING_RIGHT', 'HEAD_DOWN', 'TALKING'
+            Behavior label: 'NORMAL', 'LOOKING_LEFT', 'LOOKING_RIGHT', 'HEAD_DOWN'
         """
         if thresholds is None:
             thresholds = {
                 'yaw_left': -Config.HEAD_YAW_THRESHOLD,
                 'yaw_right': Config.HEAD_YAW_THRESHOLD,
-                'pitch_down': -Config.HEAD_PITCH_THRESHOLD,  # Negative = looking down
-                'mar_talking': Config.MAR_THRESHOLD
+                'pitch_down': -Config.HEAD_PITCH_THRESHOLD,
             }
         
         pitch, yaw, roll, eye_ratio, mar = features
-        
-        # Check for talking
-        if mar > thresholds['mar_talking']:
-            return 'TALKING'
         
         # Check for head down (pitch is NEGATIVE when looking down)
         if pitch < thresholds['pitch_down']:

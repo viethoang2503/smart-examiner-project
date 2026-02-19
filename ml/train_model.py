@@ -65,15 +65,6 @@ def generate_synthetic_data(n_samples_per_class: int = 500) -> pd.DataFrame:
         mar = np.random.uniform(0.1, 0.3)
         data.append([pitch, yaw, roll, eye_ratio, mar, BehaviorLabel.HEAD_DOWN])
     
-    # Class 4: TALKING - high MAR
-    for _ in range(n_samples_per_class):
-        pitch = np.random.normal(0, 8)
-        yaw = np.random.normal(0, 10)
-        roll = np.random.normal(0, 5)
-        eye_ratio = np.random.normal(0.5, 0.1)
-        mar = np.random.uniform(0.5, 1.2)  # Mouth open
-        data.append([pitch, yaw, roll, eye_ratio, mar, BehaviorLabel.TALKING])
-    
     # Create DataFrame
     df = pd.DataFrame(
         data, 
@@ -148,7 +139,7 @@ def train_model(
     print(f"\n  Accuracy: {accuracy:.2%}")
     
     print("\n  Classification Report:")
-    class_names = ['NORMAL', 'LOOKING_LEFT', 'LOOKING_RIGHT', 'HEAD_DOWN', 'TALKING']
+    class_names = ['NORMAL', 'LOOKING_LEFT', 'LOOKING_RIGHT', 'HEAD_DOWN']
     print(classification_report(y_test, y_pred, target_names=class_names))
     
     print("\n  Confusion Matrix:")

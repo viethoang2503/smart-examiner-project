@@ -14,12 +14,13 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 
 from .database import get_db, User, SessionLocal
+from .config import settings
 
 # ==================== CONFIG ====================
 
-SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "focusguard-secret-key-change-in-production")
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_HOURS = 24
+SECRET_KEY = settings.JWT_SECRET_KEY
+ALGORITHM = settings.JWT_ALGORITHM
+ACCESS_TOKEN_EXPIRE_HOURS = settings.ACCESS_TOKEN_EXPIRE_HOURS
 
 security = HTTPBearer()
 
@@ -51,6 +52,7 @@ class UserResponse(BaseModel):
     class_name: Optional[str]
     student_id: Optional[str]
     is_active: bool
+    must_change_password: bool = False
     
     class Config:
         from_attributes = True
@@ -61,6 +63,7 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserResponse
+    must_change_password: bool = False
 
 
 class ChangePassword(BaseModel):
@@ -162,8 +165,9 @@ def authenticate_user(db: Session, username: str, password: str) -> Optional[Use
 
 
 def change_user_password(db: Session, user: User, new_password: str) -> User:
-    """Change user's password"""
+    """Change user's password and clear must_change_password flag"""
     user.password_hash = hash_password(new_password)
+    user.must_change_password = False  # Clear the forced change flag
     db.commit()
     db.refresh(user)
     return user
@@ -252,9 +256,13 @@ def login_user(db: Session, username: str, password: str) -> Optional[TokenRespo
         data={"sub": str(user.id), "username": user.username, "role": user.role}
     )
     
+    # Check if user must change password (e.g., default admin)
+    must_change = getattr(user, 'must_change_password', False) or False
+    
     return TokenResponse(
         access_token=access_token,
         token_type="bearer",
+        must_change_password=must_change,
         user=UserResponse(
             id=user.id,
             username=user.username,
@@ -262,6 +270,7 @@ def login_user(db: Session, username: str, password: str) -> Optional[TokenRespo
             role=user.role,
             class_name=user.class_name,
             student_id=user.student_id,
-            is_active=user.is_active
+            is_active=user.is_active,
+            must_change_password=must_change
         )
     )

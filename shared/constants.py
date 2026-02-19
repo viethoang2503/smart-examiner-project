@@ -13,7 +13,6 @@ class BehaviorLabel(IntEnum):
     LOOKING_LEFT = 1
     LOOKING_RIGHT = 2
     HEAD_DOWN = 3
-    TALKING = 4
 
 
 # ==================== WEBSOCKET MESSAGE TYPES ====================
@@ -62,10 +61,10 @@ class Config:
     HEAD_YAW_THRESHOLD = 40     # degrees (left/right)
     HEAD_PITCH_THRESHOLD = 25   # degrees (down) - reduced for more sensitive head down detection
     EYE_RATIO_THRESHOLD = 0.25  # gaze detection
-    MAR_THRESHOLD = 0.65        # mouth aspect ratio for talking
     
     # Noise filtering
     VIOLATION_FRAME_COUNT = 5   # consecutive frames to confirm violation
+    VIOLATION_DURATION_SECONDS = 2.5  # seconds of continuous violation to count as 1 violation
     
     # Model path
     MODEL_PATH = "ml/models/behavior_model.pkl"
@@ -132,5 +131,4 @@ VIOLATION_MESSAGES: Dict[int, str] = {
     BehaviorLabel.LOOKING_LEFT: "Looking Left",
     BehaviorLabel.LOOKING_RIGHT: "Looking Right",
     BehaviorLabel.HEAD_DOWN: "Head Down",
-    BehaviorLabel.TALKING: "Talking",
 }

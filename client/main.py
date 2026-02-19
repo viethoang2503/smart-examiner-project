@@ -124,10 +124,10 @@ class ProctorEngine(threading.Thread):
             normalized_landmarks, _ = result
             
             # Extract features
-            features = self.geometry.extract_all_features(normalized_landmarks)
+            features, iris_gaze = self.geometry.extract_all_features(normalized_landmarks)
             
             # Detect violations
-            is_violation, label, confidence = self.violation_detector.detect(features)
+            is_violation, label, confidence = self.violation_detector.detect(features, iris_gaze)
             
             if is_violation:
                 behavior = VIOLATION_MESSAGES.get(label, "Unknown")

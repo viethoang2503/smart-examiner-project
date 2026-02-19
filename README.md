@@ -1,4 +1,4 @@
-# FocusGuard - AI Proctoring System
+# SMART EXAMINER - AI Proctoring System
 
 **English** | [Tiếng Việt](#tiếng-việt)
 
@@ -7,7 +7,7 @@
 ## English
 
 ### Overview
-FocusGuard is an AI-powered exam proctoring system that detects cheating behaviors in real-time using computer vision and machine learning.
+Smart Examiner is an AI-powered exam proctoring system that detects cheating behaviors in real-time using computer vision and machine learning.
 
 ### Features
 - **Face Detection** - MediaPipe Face Mesh with 468 landmarks
@@ -69,7 +69,7 @@ focusguard/
 ## Tiếng Việt
 
 ### Giới thiệu
-FocusGuard là hệ thống giám sát thi cử sử dụng AI để phát hiện hành vi gian lận theo thời gian thực bằng thị giác máy tính và học máy.
+Smart Examiner là hệ thống giám sát thi cử sử dụng AI để phát hiện hành vi gian lận theo thời gian thực bằng thị giác máy tính và học máy.
 
 ### Tính năng
 - **Nhận diện khuôn mặt** - MediaPipe Face Mesh với 468 điểm landmark

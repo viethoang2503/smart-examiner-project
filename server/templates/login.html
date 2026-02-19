@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>FocusGuard - Login</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-box {
+            background: #16213e;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        h1 {
+            color: #00d4ff;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #888;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            color: #ccc;
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 15px;
+            background: #0f3460;
+            border: 2px solid #0f3460;
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            border-color: #00d4ff;
+        }
+
+        .error {
+            background: #ff444420;
+            color: #ff4444;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: none;
+            text-align: center;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: #00d4ff;
+            color: #1a1a2e;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #00a8cc;
+        }
+
+        button:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-box">
+        <h1>FocusGuard</h1>
+        <p class="subtitle">AI Proctoring System</p>
+
+        <div class="error" id="error"></div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="username" placeholder="Enter username" required>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="password" placeholder="Enter password" required>
+            </div>
+            <button type="submit" id="loginBtn">Login</button>
+        </form>
+
+        <!-- Change Password Form (hidden by default) -->
+        <form id="changePassForm" style="display: none;">
+            <div
+                style="background: #ff980020; border: 1px solid #ff9800; padding: 12px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+                <span style="color: #ff9800; font-weight: bold;">⚠️ You must change your password before
+                    continuing</span>
+            </div>
+            <div class="form-group">
+                <label>Current Password</label>
+                <input type="password" id="oldPassword" placeholder="Enter current password" required>
+            </div>
+            <div class="form-group">
+                <label>New Password (min 6 characters)</label>
+                <input type="password" id="newPassword" placeholder="Enter new password" required minlength="6">
+            </div>
+            <div class="form-group">
+                <label>Confirm New Password</label>
+                <input type="password" id="confirmPassword" placeholder="Confirm new password" required minlength="6">
+            </div>
+            <button type="submit" id="changePassBtn" style="background: #ff9800;">Change Password</button>
+        </form>
+    </div>
+
+    <script>
+        let savedToken = null;
+
+        document.getElementById('loginForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('loginBtn');
+            const error = document.getElementById('error');
+
+            btn.disabled = true;
+            btn.textContent = 'Logging in...';
+            error.style.display = 'none';
+
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: document.getElementById('username').value,
+                        password: document.getElementById('password').value
+                    })
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    savedToken = data.access_token;
+                    localStorage.setItem('token', data.access_token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+
+                    // Check if password change is required
+                    if (data.must_change_password) {
+                        document.getElementById('loginForm').style.display = 'none';
+                        document.getElementById('changePassForm').style.display = 'block';
+                        document.getElementById('oldPassword').value = document.getElementById('password').value;
+                        document.getElementById('newPassword').focus();
+                        return;
+                    }
+
+                    // Redirect based on role
+                    if (data.user.role === 'admin' || data.user.role === 'teacher') {
+                        window.location.href = '/dashboard';
+                    } else {
+                        error.textContent = 'Students please use the client app';
+                        error.style.display = 'block';
+                    }
+                } else {
+                    error.textContent = 'Invalid username or password';
+                    error.style.display = 'block';
+                }
+            } catch (err) {
+                error.textContent = 'Connection error';
+                error.style.display = 'block';
+            }
+
+            btn.disabled = false;
+            btn.textContent = 'Login';
+        };
+
+        // Change Password Form Handler
+        document.getElementById('changePassForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('changePassBtn');
+            const error = document.getElementById('error');
+
+            const newPass = document.getElementById('newPassword').value;
+            const confirmPass = document.getElementById('confirmPassword').value;
+
+            if (newPass !== confirmPass) {
+                error.textContent = 'Passwords do not match';
+                error.style.display = 'block';
+                return;
+            }
+
+            if (newPass.length < 6) {
+                error.textContent = 'Password must be at least 6 characters';
+                error.style.display = 'block';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Changing password...';
+            error.style.display = 'none';
+
+            try {
+                const res = await fetch('/api/auth/change-password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + savedToken
+                    },
+                    body: JSON.stringify({
+                        old_password: document.getElementById('oldPassword').value,
+                        new_password: newPass
+                    })
+                });
+
+                if (res.ok) {
+                    const user = JSON.parse(localStorage.getItem('user') || '{}');
+                    if (user.role === 'admin' || user.role === 'teacher') {
+                        window.location.href = '/dashboard';
+                    } else {
+                        error.textContent = 'Password changed! Students please use the client app.';
+                        error.style.display = 'block';
+                        error.style.background = '#4caf5020';
+                        error.style.color = '#4caf50';
+                    }
+                } else {
+                    const data = await res.json();
+                    error.textContent = data.detail || 'Failed to change password';
+                    error.style.display = 'block';
+                }
+            } catch (err) {
+                error.textContent = 'Connection error';
+                error.style.display = 'block';
+            }
+
+            btn.disabled = false;
+            btn.textContent = 'Change Password';
+        };
+
+        // Clear any existing session - require fresh login each time
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+    </script>
+</body>
+
+</html>

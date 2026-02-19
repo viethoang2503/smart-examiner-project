@@ -19,7 +19,7 @@ class BehaviorClassifier:
     """
     Classifies student behavior using a trained Random Forest model
     Input: Feature vector [pitch, yaw, roll, eye_ratio, mar]
-    Output: Behavior label (NORMAL, LOOKING_LEFT, LOOKING_RIGHT, HEAD_DOWN, TALKING)
+    Output: Behavior label (NORMAL, LOOKING_LEFT, LOOKING_RIGHT, HEAD_DOWN)
     """
     
     def __init__(self, model_path: Optional[str] = None):
@@ -64,7 +64,7 @@ class BehaviorClassifier:
             
         Returns:
             Behavior label (int): 0=NORMAL, 1=LOOKING_LEFT, 2=LOOKING_RIGHT, 
-                                  3=HEAD_DOWN, 4=TALKING
+                                  3=HEAD_DOWN
         """
         if self.model is None:
             raise RuntimeError("Model not loaded")
@@ -84,15 +84,15 @@ class BehaviorClassifier:
             h_gaze, v_gaze = iris_gaze
             
             # Detect eye glancing left (looking left with eyes, not head)
-            if h_gaze < -0.35:  # Eyes looking left
+            if h_gaze < -0.25:  # Eyes looking left
                 return int(BehaviorLabel.LOOKING_LEFT)
             
             # Detect eye glancing right
-            if h_gaze > 0.35:  # Eyes looking right
+            if h_gaze > 0.25:  # Eyes looking right
                 return int(BehaviorLabel.LOOKING_RIGHT)
             
             # Detect eyes looking down (without head movement)
-            if v_gaze < -0.4:  # Eyes looking down
+            if v_gaze < -0.3:  # Eyes looking down
                 return int(BehaviorLabel.HEAD_DOWN)
         
         # Predict using ML model
@@ -154,84 +154,135 @@ class BehaviorClassifier:
 
 class ViolationDetector:
     """
-    Detects violations with noise filtering
-    Uses consecutive frame counting to avoid false positives
+    Detects violations with time-based filtering.
+    A behavior must persist continuously for VIOLATION_DURATION_SECONDS 
+    before it counts as a single violation.
     """
     
     def __init__(
         self, 
         classifier: BehaviorClassifier,
-        violation_threshold: int = Config.VIOLATION_FRAME_COUNT
+        violation_threshold: int = Config.VIOLATION_FRAME_COUNT,
+        violation_duration: float = Config.VIOLATION_DURATION_SECONDS
     ):
         """
         Initialize violation detector
         
         Args:
             classifier: BehaviorClassifier instance
-            violation_threshold: Number of consecutive frames to confirm violation
+            violation_threshold: Number of consecutive frames for noise filtering
+            violation_duration: Seconds of continuous violation to count as 1 violation
         """
         self.classifier = classifier
         self.violation_threshold = violation_threshold
+        self.violation_duration = violation_duration
         
-        # Frame buffer for noise filtering
+        # Frame buffer for noise filtering (short-term)
         self.frame_buffer = []
         self.max_buffer_size = violation_threshold
+        
+        # Time-based tracking
+        self._current_violation_label = None  # Currently tracked violation behavior
+        self._violation_start_time = None     # When this violation started
+        self._violation_reported = False      # Whether this violation was already reported
+        self._cooldown_until = None           # Cooldown after reporting
+        self._COOLDOWN_SECONDS = 2.0          # Wait 2s after reporting before detecting again
     
     def detect(self, features: np.ndarray, iris_gaze: Tuple[float, float] = None) -> Tuple[bool, Optional[int], Optional[float]]:
         """
-        Detect violation with noise filtering
+        Detect violation with time-based filtering.
+        A violation is only reported when the same behavior persists 
+        for >= violation_duration seconds continuously.
         
         Args:
             features: Feature vector [pitch, yaw, roll, eye_ratio, mar]
-            iris_gaze: Optional tuple of (horizontal_gaze, vertical_gaze) for eye tracking
+            iris_gaze: Optional tuple of (horizontal_gaze, vertical_gaze)
             
         Returns:
             Tuple of (is_violation, label, confidence)
-            - is_violation: True if violation detected after filtering
-            - label: Behavior label (None if no violation)
-            - confidence: Prediction confidence (None if no violation)
         """
+        import time
+        now = time.time()
+        
         # Get prediction
         label, confidence, message = self.classifier.predict_with_confidence(features, iris_gaze)
         
-        # Add to buffer
+        # Add to frame buffer for short-term noise filtering
         self.frame_buffer.append(label)
-        
-        # Keep buffer size limited
         if len(self.frame_buffer) > self.max_buffer_size:
             self.frame_buffer.pop(0)
         
-        # Check if we have enough frames
+        # Not enough frames yet for noise filtering
         if len(self.frame_buffer) < self.violation_threshold:
             return False, None, None
         
-        # Count occurrences of each label in buffer
+        # Determine the dominant behavior in the frame buffer
         violation_labels = [l for l in self.frame_buffer if l != BehaviorLabel.NORMAL]
         
-        # If all recent frames show the same violation, confirm it
         if len(violation_labels) >= self.violation_threshold:
-            # Get most common violation
-            most_common = max(set(violation_labels), key=violation_labels.count)
+            # Get most common violation in buffer
+            dominant_label = max(set(violation_labels), key=violation_labels.count)
             
-            # Check if it appears enough times
-            if violation_labels.count(most_common) >= self.violation_threshold:
-                return True, most_common, confidence
+            if violation_labels.count(dominant_label) >= self.violation_threshold:
+                # We have a consistent violation behavior in recent frames
+                current_behavior = dominant_label
+            else:
+                current_behavior = None
+        else:
+            # Mostly normal behavior
+            current_behavior = None
+        
+        # Check cooldown
+        if self._cooldown_until and now < self._cooldown_until:
+            return False, None, None
+        
+        # Time-based violation tracking
+        if current_behavior is not None:
+            if self._current_violation_label == current_behavior:
+                # Same behavior continues — check duration
+                if self._violation_start_time and not self._violation_reported:
+                    elapsed = now - self._violation_start_time
+                    if elapsed >= self.violation_duration:
+                        # VIOLATION! Behavior persisted for >= duration seconds
+                        self._violation_reported = True
+                        self._cooldown_until = now + self._COOLDOWN_SECONDS
+                        return True, current_behavior, confidence
+            else:
+                # Different violation behavior started — reset timer
+                self._current_violation_label = current_behavior
+                self._violation_start_time = now
+                self._violation_reported = False
+        else:
+            # Normal behavior — reset everything
+            self._current_violation_label = None
+            self._violation_start_time = None
+            self._violation_reported = False
         
         return False, None, None
     
     def reset(self):
-        """Reset frame buffer"""
+        """Reset all state"""
         self.frame_buffer = []
+        self._current_violation_label = None
+        self._violation_start_time = None
+        self._violation_reported = False
+        self._cooldown_until = None
     
     def get_current_state(self) -> str:
-        """
-        Get current state description
-        
-        Returns:
-            Human-readable state description
-        """
+        """Get current state description"""
         if len(self.frame_buffer) == 0:
             return "No data"
         
         recent_label = self.frame_buffer[-1]
-        return VIOLATION_MESSAGES.get(recent_label, "Unknown")
+        state = VIOLATION_MESSAGES.get(recent_label, "Unknown")
+        
+        # Show timer info if tracking a violation
+        if self._current_violation_label is not None and self._violation_start_time is not None:
+            import time
+            elapsed = time.time() - self._violation_start_time
+            remaining = max(0, self.violation_duration - elapsed)
+            if not self._violation_reported and remaining > 0:
+                state += f" ({elapsed:.1f}s / {self.violation_duration}s)"
+        
+        return state
+

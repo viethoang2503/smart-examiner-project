@@ -43,6 +43,9 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     last_login = Column(DateTime, nullable=True)
     
+    # Security: force password change on first login
+    must_change_password = Column(Boolean, default=False)
+    
     # Relationships
     violations = relationship("Violation", back_populates="user")
     exam_participations = relationship("ExamParticipant", back_populates="user")
@@ -174,11 +177,13 @@ def create_default_admin():
                 password_hash=password_hash,
                 full_name="Administrator",
                 role="admin",
-                is_active=True
+                is_active=True,
+                must_change_password=True  # Force password change on first login
             )
             db.add(admin)
             db.commit()
             print("Created default admin account: admin / admin123")
+            print("⚠️  Admin must change password on first login!")
         return admin
     finally:
         db.close()

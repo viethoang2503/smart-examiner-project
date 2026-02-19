@@ -71,10 +71,23 @@ async def change_password(
                 detail="Incorrect old password"
             )
         
-        # Change password
+        # Validate new password
+        if len(data.new_password) < 6:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="New password must be at least 6 characters"
+            )
+        
+        if data.new_password == data.old_password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="New password must be different from old password"
+            )
+        
+        # Change password (also clears must_change_password flag)
         change_user_password(db, user, data.new_password)
         
-        return {"message": "Password changed successfully"}
+        return {"message": "Password changed successfully", "must_change_password": False}
     finally:
         db.close()
 

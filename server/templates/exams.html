@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>FocusGuard - Exam Management</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial;
+            background: #1a1a2e;
+            color: #eee;
+            padding: 20px;
+        }
+
+        h1,
+        h2,
+        h3 {
+            color: #00d4ff;
+            margin-bottom: 15px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .nav {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .nav a {
+            color: #00d4ff;
+            text-decoration: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+        }
+
+        .nav a:hover,
+        .nav a.active {
+            background: #16213e;
+        }
+
+        .card {
+            background: #16213e;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #0f3460;
+        }
+
+        th {
+            color: #00d4ff;
+        }
+
+        .badge {
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+        }
+
+        .badge-pending {
+            background: #ff980030;
+            color: #ff9800;
+        }
+
+        .badge-active {
+            background: #4caf5030;
+            color: #4caf50;
+        }
+
+        .badge-ended {
+            background: #9e9e9e30;
+            color: #9e9e9e;
+        }
+
+        .badge-flagged {
+            background: #f4433630;
+            color: #f44336;
+        }
+
+        .btn {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 2px;
+            font-size: 13px;
+        }
+
+        .btn-primary {
+            background: #00d4ff;
+            color: #1a1a2e;
+        }
+
+        .btn-success {
+            background: #4caf50;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #555;
+            color: white;
+        }
+
+        .btn:hover {
+            opacity: 0.8;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 10px;
+            background: #0f3460;
+            border: 2px solid #0f3460;
+            border-radius: 5px;
+            color: white;
+            margin-bottom: 10px;
+        }
+
+        input:focus,
+        select:focus {
+            border-color: #00d4ff;
+            outline: none;
+        }
+
+        .exam-code {
+            font-size: 28px;
+            font-weight: bold;
+            color: #00d4ff;
+            letter-spacing: 3px;
+        }
+
+        .timer {
+            font-size: 32px;
+            font-weight: bold;
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .timer.warning {
+            background: #ff980030;
+            color: #ff9800;
+        }
+
+        .timer.danger {
+            background: #f4433630;
+            color: #f44336;
+        }
+
+        .timer.normal {
+            background: #4caf5030;
+            color: #4caf50;
+        }
+
+        .stats {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .stat {
+            background: #0f3460;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            flex: 1;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #00d4ff;
+        }
+
+        .logout-btn {
+            background: #f44336;
+            color: white;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .participant-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+        }
+
+        .participant-card {
+            background: #0f3460;
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 3px solid;
+        }
+
+        .participant-card.online {
+            border-color: #4caf50;
+        }
+
+        .participant-card.offline {
+            border-color: #9e9e9e;
+            opacity: 0.7;
+        }
+
+        .participant-card.flagged {
+            border-color: #f44336;
+            background: #f4433615;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>Exam Management</h1>
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <span id="currentUser">-</span>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="nav">
+        <a href="/dashboard">Dashboard</a>
+        <a href="/admin">Users</a>
+        <a href="/exams" class="active">Exams</a>
+    </div>
+
+    <div class="grid-2">
+        <!-- Left: Create Form -->
+        <div class="card">
+            <h3>Create New Exam</h3>
+            <form id="createForm">
+                <div style="margin-bottom: 12px;">
+                    <label style="display: block; color: #888; font-size: 12px; margin-bottom: 4px;">📝 Exam
+                        Name</label>
+                    <input type="text" id="examName" placeholder="e.g. Midterm Math" required style="width: 100%;">
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <label style="display: block; color: #888; font-size: 12px; margin-bottom: 4px;">📅 Exam
+                        Date</label>
+                    <input type="date" id="examDate" required style="width: 100%;">
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <label style="display: block; color: #888; font-size: 12px; margin-bottom: 4px;">⏱️ Duration
+                        (minutes)</label>
+                    <input type="number" id="duration" placeholder="60" value="60" min="1" required
+                        style="width: 100%;">
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <label style="display: block; color: #888; font-size: 12px; margin-bottom: 4px;">⚠️ Max Violations
+                        (auto-flag if exceeded)</label>
+                    <input type="number" id="maxViolations" placeholder="5" value="5" min="1" required
+                        style="width: 100%;">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Create Exam</button>
+            </form>
+        </div>
+
+        <!-- Right: Exams List -->
+        <div class="card">
+            <h3>Your Exams</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Name</th>
+                        <th>Status</th>
+                        <th>Students</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="examsTable"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Exam Detail Modal -->
+    <div id="examDetail" class="hidden">
+        <div class="card">
+            <div class="header">
+                <div>
+                    <h2 id="detailName">-</h2>
+                    <div class="exam-code" id="detailCode">-</div>
+                </div>
+                <button class="btn btn-secondary" onclick="hideDetail()">← Back</button>
+            </div>
+
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-value" id="detailOnline">0</div>
+                    <div>Online</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="detailTotal">0</div>
+                    <div>Total</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="detailFlagged">0</div>
+                    <div>Flagged</div>
+                </div>
+            </div>
+
+            <div class="timer normal" id="countdown">--:--</div>
+
+            <div style="margin: 15px 0; text-align: center;">
+                <button class="btn btn-success" id="startBtn" onclick="startExam()">▶ Start Exam</button>
+                <button class="btn btn-danger" id="endBtn" onclick="endExam()">⬛ End Exam</button>
+            </div>
+
+            <h3>Participants</h3>
+            <div class="participant-grid" id="participants"></div>
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token');
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+        if (!token || (user.role !== 'admin' && user.role !== 'teacher')) {
+            alert('Teacher/Admin access required');
+            window.location.href = '/login';
+        }
+
+        document.getElementById('currentUser').textContent = user.full_name;
+
+        let currentExam = null;
+        let timerInterval = null;
+
+        // Load exams
+        async function loadExams() {
+            const res = await fetch('/api/exams', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            const exams = await res.json();
+
+            document.getElementById('examsTable').innerHTML = exams.map(e => `
+                <tr>
+                    <td><strong>${e.exam_code}</strong></td>
+                    <td>${e.exam_name}</td>
+                    <td><span class="badge badge-${e.status}">${e.status}</span></td>
+                    <td>${e.online_count}/${e.participant_count}</td>
+                    <td>
+                        <button class="btn btn-primary" onclick="showDetail('${e.exam_code}')">View</button>
+                    </td>
+                </tr>
+            `).join('') || '<tr><td colspan="5" style="text-align:center; color:#888;">No exams yet</td></tr>';
+        }
+
+        loadExams();
+
+        // Create exam
+        document.getElementById('createForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const res = await fetch('/api/exams', {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    exam_name: document.getElementById('examName').value,
+                    exam_date: document.getElementById('examDate').value || null,
+                    duration_minutes: parseInt(document.getElementById('duration').value),
+                    max_violations: parseInt(document.getElementById('maxViolations').value)
+                })
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                alert('Exam created! Code: ' + data.exam_code);
+                document.getElementById('createForm').reset();
+                loadExams();
+            }
+        };
+
+        // Show exam detail
+        async function showDetail(code) {
+            const res = await fetch(`/api/exams/${code}`, {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            currentExam = await res.json();
+
+            document.getElementById('detailName').textContent = currentExam.exam_name;
+            document.getElementById('detailCode').textContent = currentExam.exam_code;
+            document.getElementById('detailTotal').textContent = currentExam.participant_count;
+            document.getElementById('detailOnline').textContent = currentExam.online_count;
+
+            document.getElementById('startBtn').style.display = currentExam.status === 'pending' ? 'inline-block' : 'none';
+            document.getElementById('endBtn').style.display = currentExam.status === 'active' ? 'inline-block' : 'none';
+
+            document.getElementById('examDetail').classList.remove('hidden');
+            document.querySelector('.grid-2').classList.add('hidden');
+
+            loadParticipants();
+            startTimer();
+        }
+
+        function hideDetail() {
+            document.getElementById('examDetail').classList.add('hidden');
+            document.querySelector('.grid-2').classList.remove('hidden');
+            if (timerInterval) clearInterval(timerInterval);
+            loadExams();
+        }
+
+        // Load participants
+        async function loadParticipants() {
+            if (!currentExam) return;
+
+            const res = await fetch(`/api/exams/${currentExam.exam_code}/participants`, {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            const participants = await res.json();
+
+            document.getElementById('detailFlagged').textContent = participants.filter(p => p.is_flagged).length;
+            document.getElementById('detailOnline').textContent = participants.filter(p => p.is_online).length;
+            document.getElementById('detailTotal').textContent = participants.length;
+
+            document.getElementById('participants').innerHTML = participants.map(p => `
+                <div class="participant-card ${p.is_flagged ? 'flagged' : (p.is_online ? 'online' : 'offline')}" style="cursor: pointer;" onclick="viewViolations(${p.user_id}, '${p.full_name}')">
+                    <strong>${p.full_name}</strong>
+                    <div style="font-size: 12px; color: #888;">${p.class_name || ''}</div>
+                    <div style="margin-top: 5px;">
+                        Violations: <strong style="color: ${p.is_flagged ? '#f44336' : '#fff'}">${p.violation_count}</strong>
+                        ${p.is_flagged ? '<span class="badge badge-flagged">FLAGGED</span>' : ''}
+                    </div>
+                    <button class="btn btn-primary" style="margin-top: 8px; padding: 5px 10px; font-size: 11px;" onclick="event.stopPropagation(); viewViolations(${p.user_id}, '${p.full_name}')">📷 View Report</button>
+                </div>
+            `).join('') || '<p style="color: #888;">No participants yet</p>';
+        }
+
+        // Timer
+        function startTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+
+            const update = () => {
+                const timer = document.getElementById('countdown');
+
+                if (!currentExam || currentExam.status !== 'active' || !currentExam.started_at) {
+                    timer.textContent = currentExam?.status === 'pending' ? 'Waiting to start' : 'Exam ended';
+                    timer.className = 'timer ' + (currentExam?.status === 'ended' ? 'danger' : 'normal');
+                    return;
+                }
+
+                const started = new Date(currentExam.started_at);
+                const endTime = new Date(started.getTime() + currentExam.duration_minutes * 60 * 1000);
+                const now = new Date();
+                const remaining = Math.max(0, Math.floor((endTime - now) / 1000));
+
+                const mins = Math.floor(remaining / 60);
+                const secs = remaining % 60;
+                timer.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
+                if (remaining === 0) {
+                    timer.className = 'timer danger';
+                    timer.textContent = 'TIME UP';
+                } else if (remaining < 300) {
+                    timer.className = 'timer danger';
+                } else if (remaining < 600) {
+                    timer.className = 'timer warning';
+                } else {
+                    timer.className = 'timer normal';
+                }
+            };
+
+            update();
+            timerInterval = setInterval(() => {
+                update();
+                loadParticipants();
+            }, 5000);
+        }
+
+        // Start exam
+        async function startExam() {
+            if (!confirm('Start this exam?')) return;
+
+            await fetch(`/api/exams/${currentExam.exam_code}/start`, {
+                method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+
+            showDetail(currentExam.exam_code);
+        }
+
+        // End exam
+        async function endExam() {
+            if (!confirm('End this exam? This cannot be undone.')) return;
+
+            await fetch(`/api/exams/${currentExam.exam_code}/end`, {
+                method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+
+            showDetail(currentExam.exam_code);
+        }
+
+        // View violations report for a student
+        async function viewViolations(userId, userName) {
+            const res = await fetch(`/api/exams/${currentExam.exam_code}/violations?user_id=${userId}`, {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            const violations = await res.json();
+
+            let html = `<h2>Violations Report: ${userName}</h2>
+                <p>Exam: ${currentExam.exam_name} (${currentExam.exam_code})</p>
+                <p>Total Violations: ${violations.length}</p>
+                <button class="btn btn-secondary" onclick="loadParticipants()">← Back</button>
+                <hr style="border-color: #333; margin: 15px 0;">`;
+
+            if (violations.length === 0) {
+                html += '<p style="color: #888;">No violations recorded</p>';
+            } else {
+                html += '<div style="display: grid; gap: 15px;">';
+                violations.forEach(v => {
+                    const time = new Date(v.timestamp).toLocaleString();
+                    html += `<div style="background: #0f3460; padding: 15px; border-radius: 8px; border-left: 3px solid #f44336;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                            <strong style="color: #f44336;">${v.behavior_name}</strong>
+                            <span style="color: #888; font-size: 12px;">${time}</span>
+                        </div>
+                        <div style="font-size: 12px; color: #888;">Confidence: ${parseFloat(v.confidence).toFixed(2)}</div>
+                        ${v.screenshot_path ? `<img src="${v.screenshot_path}" style="max-width: 100%; margin-top: 10px; border-radius: 5px; border: 2px solid #f44336;">` : '<div style="color: #666; font-size: 12px; margin-top: 5px;">No screenshot</div>'}
+                    </div>`;
+                });
+                html += '</div>';
+            }
+
+            document.getElementById('participants').innerHTML = html;
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/login';
+        }
+    </script>
+</body>
+
+</html>
