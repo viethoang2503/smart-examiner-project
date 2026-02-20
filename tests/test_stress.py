@@ -106,7 +106,7 @@ async def run_stress_test(num_clients: int, duration_seconds: int = 30):
     }
 
 
-async def test_websocket_connections(num_connections: int = 20):
+async def measure_websocket_connections(num_connections: int = 20):
     """Test multiple WebSocket connections"""
     print(f"\n{'='*60}")
     print(f"WebSocket Connection Test: {num_connections} connections")
@@ -173,7 +173,7 @@ def run_all_stress_tests():
     
     # Test WebSocket connections
     try:
-        ws_result = asyncio.run(test_websocket_connections(20))
+        ws_result = asyncio.run(measure_websocket_connections(20))
     except Exception as e:
         print(f"WebSocket test error: {e}")
         ws_result = None

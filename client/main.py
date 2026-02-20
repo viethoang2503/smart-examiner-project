@@ -25,6 +25,10 @@ from client.ai_engine import FaceDetector, GeometryCalculator, BehaviorClassifie
 from client.network import SyncWebSocketClient
 from client.anti_cheat import get_anti_cheat_monitor, CheatViolation, CheatEvent
 from shared.constants import Config, BehaviorLabel, VIOLATION_MESSAGES, StatusColor
+from shared.logging_config import get_client_logger, get_violation_logger
+
+client_logger = get_client_logger()
+violation_log = get_violation_logger()
 
 
 class StatusSignals(QObject):
@@ -146,7 +150,7 @@ class ProctorEngine(threading.Thread):
                             save_local=False
                         )
                     except Exception as e:
-                        print(f"Screenshot error: {e}")
+                        client_logger.error(f"Screenshot error: {e}")
                 
                 # Send to server via API (with screenshot)
                 self._send_violation_to_api(label, behavior, confidence, screenshot_b64)
@@ -184,9 +188,9 @@ class ProctorEngine(threading.Thread):
             )
             if response.status_code == 200:
                 data = response.json()
-                print(f"Violation recorded: {behavior} (count: {data.get('violation_count')})")
+                client_logger.info(f"Violation recorded: {behavior} (count: {data.get('violation_count')})")
         except Exception as e:
-            print(f"Failed to send violation: {e}")
+            client_logger.error(f"Failed to send violation: {e}")
     
     def stop(self):
         """Stop the proctoring engine"""
@@ -431,7 +435,7 @@ def main():
             user = login_dialog.get_user()
             student_id = user.get("username") or user.get("student_id") or "STUDENT"
             
-            print(f"Logged in as: {user.get('full_name')} ({user.get('role')})")
+            client_logger.info(f"Logged in as: {user.get('full_name')} ({user.get('role')})")
             
             # Show exam join dialog (only for students)
             if user.get("role") == "student":
@@ -441,15 +445,15 @@ def main():
                     sys.exit(0)
                 
                 exam_data = exam_dialog.get_exam_data()
-                print(f"Joined exam: {exam_data.get('exam_name')} ({exam_data.get('exam_code')})")
+                client_logger.info(f"Joined exam: {exam_data.get('exam_name')} ({exam_data.get('exam_code')})")
             else:
-                print("Non-student role - skipping exam join")
+                client_logger.info("Non-student role - skipping exam join")
                 
         except ImportError as e:
-            print(f"Login modules not available: {e}")
-            print("Running in demo mode...")
+            client_logger.error(f"Login modules not available: {e}")
+            client_logger.info("Running in demo mode...")
     else:
-        print("Skipping login (test mode)")
+        client_logger.info("Skipping login (test mode)")
         student_id = student_id or "TEST_STUDENT"
     
     print(f"\nStudent ID: {student_id}")

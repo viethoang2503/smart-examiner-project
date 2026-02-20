@@ -4,14 +4,20 @@ JWT token-based authentication with password hashing
 """
 
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 import bcrypt
 from jose import JWTError, jwt
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
+
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+from shared.logging_config import get_auth_logger
+
+auth_logger = get_auth_logger()
 
 from .database import get_db, User, SessionLocal
 from .config import settings
@@ -54,8 +60,7 @@ class UserResponse(BaseModel):
     is_active: bool
     must_change_password: bool = False
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class TokenResponse(BaseModel):
@@ -92,9 +97,9 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     to_encode = data.copy()
     
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(hours=ACCESS_TOKEN_EXPIRE_HOURS)
+        expire = datetime.now(timezone.utc) + timedelta(hours=ACCESS_TOKEN_EXPIRE_HOURS)
     
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
@@ -109,7 +114,6 @@ def decode_token(token: str) -> Optional[dict]:
         return payload
     except JWTError:
         return None
-
 
 # ==================== USER CRUD ====================
 
@@ -158,7 +162,7 @@ def authenticate_user(db: Session, username: str, password: str) -> Optional[Use
         return None
     
     # Update last login
-    user.last_login = datetime.utcnow()
+    user.last_login = datetime.now(timezone.utc)
     db.commit()
     
     return user
@@ -194,7 +198,7 @@ async def get_current_user(
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
     except JWTError as e:
-        print(f"JWT decode error: {e}")
+        auth_logger.error(f"JWT decode error: {e}")
         raise credentials_exception
     
     user_id_str = payload.get("sub")

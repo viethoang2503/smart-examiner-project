@@ -5,7 +5,7 @@ Create, manage, and monitor exam sessions
 
 import random
 import string
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
@@ -13,6 +13,13 @@ from sqlalchemy.orm import Session
 
 from .database import SessionLocal, ExamSession, ExamParticipant, User, Violation
 from .auth import get_current_user, require_role
+
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+from shared.logging_config import get_exam_logger
+
+exam_logger = get_exam_logger()
 
 router = APIRouter(prefix="/api/exams", tags=["Exams"])
 
@@ -286,7 +293,7 @@ async def start_exam(
             raise HTTPException(status_code=400, detail=f"Exam is already {exam.status}")
         
         exam.status = "active"
-        exam.started_at = datetime.utcnow()
+        exam.started_at = datetime.now(timezone.utc)
         db.commit()
         
         return {"message": "Exam started", "started_at": exam.started_at.isoformat()}
@@ -307,7 +314,7 @@ async def end_exam(
             raise HTTPException(status_code=404, detail="Exam not found")
         
         exam.status = "ended"
-        exam.ended_at = datetime.utcnow()
+        exam.ended_at = datetime.now(timezone.utc)
         
         # Mark all participants as offline
         participants = db.query(ExamParticipant).filter(ExamParticipant.exam_id == exam.id).all()
@@ -392,8 +399,7 @@ async def record_violation(
                 uploads_dir = os.path.join(os.path.dirname(__file__), 'uploads', 'violations')
                 os.makedirs(uploads_dir, exist_ok=True)
                 
-                # Generate filename
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                timestamp = datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')
                 filename = f"{exam_code}_{current_user.username}_{timestamp}_{behavior_name}.jpg"
                 filepath = os.path.join(uploads_dir, filename)
                 
@@ -404,7 +410,7 @@ async def record_violation(
                 
                 screenshot_path = f"/uploads/violations/{filename}"
             except Exception as e:
-                print(f"Failed to save screenshot: {e}")
+                exam_logger.error(f"Failed to save screenshot: {e}")
         
         # Record violation
         violation = Violation(

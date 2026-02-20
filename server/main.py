@@ -18,10 +18,15 @@ import os
 # Add parent directory to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from shared.constants import Config, MessageType, VIOLATION_MESSAGES
+from shared.logging_config import get_server_logger, get_violation_logger
 from server.config import settings
 from server.auth_routes import router as auth_router, init_auth
 from server.exam_routes import router as exam_router
 from server.report_routes import router as report_router
+
+# Initialize loggers
+logger = get_server_logger()
+violation_log = get_violation_logger()
 
 
 # ==================== DATA MODELS ====================
@@ -80,7 +85,7 @@ class ConnectionManager:
                 last_heartbeat=now
             )
         
-        print(f"[Server] Student connected: {student_id}")
+        logger.info(f"Student connected: {student_id}")
         await self.broadcast_to_dashboards({
             "type": "student_connected",
             "student_id": student_id,
@@ -90,14 +95,14 @@ class ConnectionManager:
     async def connect_dashboard(self, websocket: WebSocket):
         await websocket.accept()
         self.dashboard_connections.add(websocket)
-        print(f"[Server] Dashboard connected. Total: {len(self.dashboard_connections)}")
+        logger.info(f"Dashboard connected. Total: {len(self.dashboard_connections)}")
     
     def disconnect_student(self, student_id: str):
         if student_id in self.active_connections:
             del self.active_connections[student_id]
         if student_id in self.sessions:
             self.sessions[student_id].is_online = False
-        print(f"[Server] Student disconnected: {student_id}")
+        logger.info(f"Student disconnected: {student_id}")
     
     def disconnect_dashboard(self, websocket: WebSocket):
         self.dashboard_connections.discard(websocket)
@@ -120,7 +125,7 @@ class ConnectionManager:
             if student_id in self.sessions:
                 self.sessions[student_id].violations.append(violation)
             
-            print(f"[Server] Violation from {student_id}: {violation.behavior_name}")
+            violation_log.warning(f"Violation from {student_id}: {violation.behavior_name} (confidence: {violation.confidence:.2f})")
             await self.broadcast_to_dashboards({
                 "type": "violation",
                 "student_id": student_id,
@@ -165,8 +170,8 @@ app = FastAPI(title="FocusGuard Server", version="1.0.0")
 # CORS: Load allowed origins from .env config
 cors_origins = settings.CORS_ORIGINS
 if cors_origins == ["*"] and not settings.DEBUG:
-    print("[Server] ⚠️  WARNING: CORS_ORIGINS is set to '*' in non-debug mode!")
-    print("[Server] ⚠️  Please set specific origins in .env for production.")
+    logger.warning("CORS_ORIGINS is set to '*' in non-debug mode!")
+    logger.warning("Please set specific origins in .env for production.")
 
 app.add_middleware(
     CORSMiddleware,
@@ -219,7 +224,7 @@ async def websocket_student_endpoint(websocket: WebSocket):
                 last_heartbeat=now
             )
         
-        print(f"[Server] Student connected: {student_id}")
+        logger.info(f"Student WS connected: {student_id}")
         await manager.broadcast_to_dashboards({
             "type": "student_connected",
             "student_id": student_id,
@@ -236,7 +241,7 @@ async def websocket_student_endpoint(websocket: WebSocket):
     except asyncio.TimeoutError:
         await websocket.close(code=4002)
     except Exception as e:
-        print(f"[Server] WebSocket error: {e}")
+        logger.error(f"WebSocket error: {e}")
     finally:
         if student_id:
             manager.disconnect_student(student_id)
@@ -325,22 +330,22 @@ def main():
     import webbrowser
     import threading
     
-    print("=" * 60)
-    print("FocusGuard Server")
-    print("=" * 60)
-    print(f"[Config] {settings}")
+    logger.info("=" * 60)
+    logger.info("FocusGuard Server Starting")
+    logger.info("=" * 60)
+    logger.info(f"Config: {settings}")
     
     # Initialize database and create default admin
-    print("Initializing database...")
+    logger.info("Initializing database...")
     init_auth()
     
     host = settings.SERVER_HOST
     port = settings.SERVER_PORT
     
-    print(f"Starting on http://{host}:{port}")
-    print(f"Login: http://localhost:{port}/login")
-    print(f"Dashboard: http://localhost:{port}/dashboard")
-    print("=" * 60)
+    logger.info(f"Starting on http://{host}:{port}")
+    logger.info(f"Login: http://localhost:{port}/login")
+    logger.info(f"Dashboard: http://localhost:{port}/dashboard")
+    logger.info("=" * 60)
     
     # Auto-open browser after 2 seconds
     def open_browser():

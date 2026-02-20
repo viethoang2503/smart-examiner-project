@@ -4,14 +4,19 @@ SQLite database with SQLAlchemy ORM
 """
 
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from sqlalchemy import create_engine, Column, Integer, String, Boolean, DateTime, ForeignKey, Text
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship
+from sqlalchemy.orm import sessionmaker, relationship, declarative_base
+
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+from shared.logging_config import get_server_logger
+
+db_logger = get_server_logger()
 
 # Database path
-DB_PATH = os.path.join(os.path.dirname(__file__), 'focusguard.db')
+DB_PATH = os.environ.get("FOCUSGUARD_DB_PATH", os.path.join(os.path.dirname(__file__), 'focusguard.db'))
 DATABASE_URL = f"sqlite:///{DB_PATH}"
 
 # SQLAlchemy setup
@@ -40,7 +45,7 @@ class User(Base):
     
     # Status
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     last_login = Column(DateTime, nullable=True)
     
     # Security: force password change on first login
@@ -70,7 +75,7 @@ class ExamSession(Base):
     
     # Timing
     exam_date = Column(DateTime, nullable=True)  # Scheduled exam date
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     started_at = Column(DateTime, nullable=True)
     ended_at = Column(DateTime, nullable=True)
     
@@ -100,7 +105,7 @@ class ExamParticipant(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     
     # Participation status
-    joined_at = Column(DateTime, default=datetime.utcnow)
+    joined_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     left_at = Column(DateTime, nullable=True)
     is_online = Column(Boolean, default=False)
     
@@ -132,7 +137,7 @@ class Violation(Base):
     confidence = Column(String(10), nullable=False)  # Store as string for simplicity
     
     # Timestamp
-    timestamp = Column(DateTime, default=datetime.utcnow)
+    timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
     # Optional screenshot path
     screenshot_path = Column(String(500), nullable=True)
@@ -150,7 +155,7 @@ class Violation(Base):
 def init_db():
     """Create all tables"""
     Base.metadata.create_all(bind=engine)
-    print(f"Database initialized at: {DB_PATH}")
+    db_logger.info(f"Database initialized at: {DB_PATH}")
 
 
 def get_db():
@@ -182,8 +187,8 @@ def create_default_admin():
             )
             db.add(admin)
             db.commit()
-            print("Created default admin account: admin / admin123")
-            print("⚠️  Admin must change password on first login!")
+            db_logger.info("Created default admin account: admin / admin123")
+            db_logger.warning("Admin must change password on first login!")
         return admin
     finally:
         db.close()
@@ -191,7 +196,7 @@ def create_default_admin():
 
 
 if __name__ == "__main__":
-    print("Initializing FocusGuard Database...")
+    db_logger.info("Initializing FocusGuard Database...")
     init_db()
     create_default_admin()
-    print("Done!")
+    db_logger.info("Done!")

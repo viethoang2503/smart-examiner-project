@@ -243,7 +243,7 @@ class TestDatabaseModels:
         session.commit()
         
         # Verify
-        p = session.query(ExamParticipant).get(participant.id)
+        p = session.get(ExamParticipant, participant.id)
         assert p.is_flagged == True
         assert p.violation_count == 5
         print(f"✅ Participant flagged with {p.violation_count} violations")

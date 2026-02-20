@@ -32,3 +32,9 @@ python-multipart>=0.0.6
 # Reports
 reportlab
 openpyxl
+
+# Testing
+pytest>=7.0.0
+pytest-asyncio>=0.21.0
+requests>=2.31.0
+httpx>=0.24.0

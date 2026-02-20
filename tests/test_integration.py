@@ -34,7 +34,7 @@ class TestAuthentication:
         assert data["token_type"] == "bearer"
         assert data["user"]["role"] in ["admin", "teacher", "student"]
         
-        return data["access_token"]
+        self.access_token = data["access_token"]
     
     def test_login_wrong_password(self):
         """Test login with wrong password"""
@@ -89,7 +89,7 @@ class TestExamManagement:
         assert len(data["exam_code"]) == 6
         assert data["exam_name"] == "Integration Test Exam"
         
-        return data["exam_code"]
+        self.exam_code = data["exam_code"]
     
     def test_list_exams(self, admin_token):
         """Test listing all exams"""
@@ -169,10 +169,11 @@ class TestViolationReporting:
         
         # Record violation (as admin for testing)
         response = requests.post(
-            f"{BASE_URL}/api/exams/{exam_code}/violations",
+            f"{BASE_URL}/api/exams/{exam_code}/violation",
             headers={"Authorization": f"Bearer {admin_token}"},
-            json={
-                "behavior": "Looking Left",
+            params={
+                "behavior_type": 1,
+                "behavior_name": "Looking Left",
                 "confidence": 0.85
             },
             timeout=10

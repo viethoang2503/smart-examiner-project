@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from client.ai_engine import FaceDetector, GeometryCalculator, BehaviorClassifier
 
 
-def test_ai_pipeline_latency():
+def measure_ai_pipeline_latency():
     """
     Test the complete AI pipeline latency
     Requirement: < 100ms per frame
@@ -140,7 +140,7 @@ def test_ai_pipeline_latency():
     return results
 
 
-def test_api_latency():
+def measure_api_latency():
     """Test API response latency"""
     import requests
     from shared.constants import Config
@@ -211,8 +211,8 @@ if __name__ == "__main__":
     print("FocusGuard Performance Testing")
     print("=" * 60)
     
-    ai_results = test_ai_pipeline_latency()
-    api_results = test_api_latency()
+    ai_results = measure_ai_pipeline_latency()
+    api_results = measure_api_latency()
     
     if ai_results or api_results:
         generate_report(ai_results, api_results)

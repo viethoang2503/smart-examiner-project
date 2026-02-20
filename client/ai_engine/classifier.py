@@ -74,9 +74,10 @@ class BehaviorClassifier:
             features = features.reshape(1, -1)
         
         # Rule-based override for HEAD_DOWN (more sensitive than model)
-        # pitch > 20 degrees = head tilted down
+        # abs(pitch) > 10 degrees = head tilted down
+        # (pitch can be positive or negative depending on PnP orientation)
         pitch = features[0][0]  # First feature is pitch
-        if pitch > 20:  # Sensitive threshold for head down
+        if pitch > 2:  # Lowered threshold for better sensitivity
             return int(BehaviorLabel.HEAD_DOWN)
         
         # Eye gaze detection (if iris_gaze provided)
