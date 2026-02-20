@@ -104,5 +104,5 @@ pip install -r requirements.txt --force-reinstall
 ---
 
 ## Liên hệ hỗ trợ
-- Email: support@focusguard.edu.vn
-- Hotline: 1900-xxxx
+- Email: hoang25032005ntp@gmail.com
+- Hotline: 0766349696
