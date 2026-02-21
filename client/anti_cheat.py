@@ -207,12 +207,86 @@ class WindowsAntiCheat(AntiCheatMonitor):
             import ctypes
             from ctypes import wintypes
             
+            user32 = ctypes.windll.user32
+            
             if enable:
-                # Register low-level keyboard hook
-                print("[AntiCheat] Alt+Tab blocking enabled (limited without admin)")
-            else:
-                print("[AntiCheat] Alt+Tab blocking disabled")
+                if getattr(self, '_keyboard_hook', None) is not None:
+                    return # Already hooked
+                    
+                # Constants mapping
+                WH_KEYBOARD_LL = 13
+                WM_KEYDOWN = 0x0100
+                WM_SYSKEYDOWN = 0x0104
                 
+                VK_TAB = 0x09
+                VK_LWIN = 0x5B
+                VK_RWIN = 0x5C
+                VK_ESCAPE = 0x1B
+                LLKHF_ALTDOWN = 0x20
+                
+                class KBDLLHOOKSTRUCT(ctypes.Structure):
+                    _fields_ = [
+                        ("vkCode", wintypes.DWORD),
+                        ("scanCode", wintypes.DWORD),
+                        ("flags", wintypes.DWORD),
+                        ("time", wintypes.DWORD),
+                        ("dwExtraInfo", ctypes.POINTER(wintypes.ULONG))
+                    ]
+                
+                CMPFUNC = ctypes.WINFUNCTYPE(wintypes.LPARAM, wintypes.INT, wintypes.WPARAM, ctypes.POINTER(KBDLLHOOKSTRUCT))
+                
+                def hook_callback(nCode, wParam, lParam):
+                    if nCode >= 0:
+                        vk = lParam.contents.vkCode
+                        flags = lParam.contents.flags
+                        is_keydown = wParam == WM_KEYDOWN or wParam == WM_SYSKEYDOWN
+                        
+                        # Block Alt+Tab and Alt+Esc
+                        if (flags & LLKHF_ALTDOWN) and vk in (VK_TAB, VK_ESCAPE):
+                            if is_keydown:
+                                self._report_violation(CheatEvent.ALT_TAB_DETECTED, "OS Shortcut blocked: Alt+Tab/Esc")
+                            return 1 # Swallows the key event
+                            
+                        # Block Windows keys (Start Menu shortcut)
+                        if vk in (VK_LWIN, VK_RWIN):
+                            if is_keydown:
+                                self._report_violation(CheatEvent.ALT_TAB_DETECTED, "OS Shortcut blocked: Windows Key")
+                            return 1
+                            
+                        # Block Ctrl+Esc (Another Start Menu shortcut)
+                        if vk == VK_ESCAPE and (user32.GetAsyncKeyState(0x11) & 0x8000): # 0x11 is VK_CONTROL
+                            if is_keydown:
+                                self._report_violation(CheatEvent.ALT_TAB_DETECTED, "OS Shortcut blocked: Ctrl+Esc")
+                            return 1
+                            
+                    return user32.CallNextHookEx(self._keyboard_hook, nCode, wParam, lParam)
+                
+                # We MUST store the pointer to prevent Python Garbage Collector from sweeping it
+                self._hook_func_pointer = CMPFUNC(hook_callback)
+                
+                # 0 is the thread ID for global hook, GetModuleHandleW(None) gets current EXE handle
+                kernel32 = ctypes.windll.kernel32
+                hMod = kernel32.GetModuleHandleW(None)
+                
+                self._keyboard_hook = user32.SetWindowsHookExW(
+                    WH_KEYBOARD_LL, 
+                    self._hook_func_pointer, 
+                    hMod, 
+                    0
+                )
+                
+                if not self._keyboard_hook:
+                    print(f"[AntiCheat] Failed to install keyboard hook. Error: {ctypes.GetLastError()}")
+                else:
+                    print("[AntiCheat] 🛡️ Alt+Tab & Windows Key blocking ENFORCED!")
+                    
+            else:
+                if getattr(self, '_keyboard_hook', None) is not None:
+                    user32.UnhookWindowsHookEx(self._keyboard_hook)
+                    self._keyboard_hook = None
+                    self._hook_func_pointer = None
+                    print("[AntiCheat] 🔓 OS shortcut blocking disabled")
+                    
         except Exception as e:
             print(f"[AntiCheat] Alt+Tab block error: {e}")
     
@@ -230,16 +304,24 @@ class WindowsAntiCheat(AntiCheatMonitor):
             key_path = r"Software\Microsoft\Windows\CurrentVersion\Policies\System"
             
             try:
+                # Need KEY_SET_VALUE access
                 key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_SET_VALUE)
             except FileNotFoundError:
-                key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, key_path)
+                try:
+                    # Create if it doesn't exist
+                    key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, key_path)
+                except Exception as create_e:
+                    print(f"[AntiCheat] Cannot create registry key (needs Admin prep): {create_e}")
+                    return
             
             value = 1 if disable else 0
             winreg.SetValueEx(key, "DisableTaskMgr", 0, winreg.REG_DWORD, value)
             winreg.CloseKey(key)
             
-            print(f"[AntiCheat] Task Manager {'disabled' if disable else 'enabled'}")
+            print(f"[AntiCheat] 🛡️ Task Manager {'DISABLED (Locked)' if disable else 'Enabled'}!")
             
+        except PermissionError:
+            print("[AntiCheat] ⚠️ Cannot disable Task Manager: Administrator privileges required.")
         except Exception as e:
             print(f"[AntiCheat] Task Manager control error: {e}")
 

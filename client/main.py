@@ -16,10 +16,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from PyQt6.QtWidgets import (
     QApplication, QSystemTrayIcon, QMenu, 
-    QWidget, QVBoxLayout, QLabel, QFrame
+    QWidget, QVBoxLayout, QLabel, QFrame, QMainWindow, QPushButton, QMessageBox
 )
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QObject
-from PyQt6.QtGui import QIcon, QPixmap, QAction, QColor, QPainter
+from PyQt6.QtGui import QIcon, QPixmap, QAction, QColor, QPainter, QFont
 
 from client.ai_engine import FaceDetector, GeometryCalculator, BehaviorClassifier, ViolationDetector
 from client.network import SyncWebSocketClient
@@ -191,10 +191,120 @@ class ProctorEngine(threading.Thread):
                 client_logger.info(f"Violation recorded: {behavior} (count: {data.get('violation_count')})")
         except Exception as e:
             client_logger.error(f"Failed to send violation: {e}")
-    
+            
     def stop(self):
         """Stop the proctoring engine"""
         self.running = False
+    
+class KioskWindow(QMainWindow):
+    """
+    Fullscreen Kiosk Mode Window
+    Locks the user into the exam environment.
+    """
+    request_quit = pyqtSignal()
+    
+    def __init__(self, exam_code: str, student_id: str, anti_cheat_monitor):
+        super().__init__()
+        self.exam_code = exam_code
+        self.student_id = student_id
+        self.anti_cheat = anti_cheat_monitor
+        
+        self.setup_ui()
+        self.apply_lockdown()
+        
+    def setup_ui(self):
+        self.setWindowTitle("FocusGuard - Secure Exam Environment")
+        self.setStyleSheet("background-color: #1a1a2e; color: white;")
+        
+        central_widget = QWidget()
+        layout = QVBoxLayout(central_widget)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        # Warning icon/text
+        warning = QLabel("🔒 SECURE EXAM IN PROGRESS")
+        warning.setFont(QFont("Arial", 48, QFont.Weight.Bold))
+        warning.setStyleSheet("color: #ff4444;")
+        warning.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(warning)
+        
+        layout.addSpacing(30)
+        
+        # Info
+        info = QLabel(f"Student: {self.student_id}\nExam Code: {self.exam_code}")
+        info.setFont(QFont("Arial", 24))
+        info.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(info)
+        
+        layout.addSpacing(50)
+        
+        # Instructions
+        instr = QLabel(
+            "Do not attempt to exit, switch windows, or use other applications.\n"
+            "AI Proctoring is actively monitoring your behavior.\n"
+            "All violations are recorded and sent to the examiner."
+        )
+        instr.setFont(QFont("Arial", 18))
+        instr.setStyleSheet("color: #aaaaaa;")
+        instr.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(instr)
+        
+        layout.addSpacing(100)
+        
+        # Submit/Quit Button
+        self.submit_btn = QPushButton("FINISH EXAM & SUBMIT")
+        self.submit_btn.setFont(QFont("Arial", 18, QFont.Weight.Bold))
+        self.submit_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #ff4444;
+                color: white;
+                padding: 20px 40px;
+                border-radius: 10px;
+            }
+            QPushButton:hover {
+                background-color: #cc0000;
+            }
+        """)
+        self.submit_btn.clicked.connect(self.confirm_quit)
+        layout.addWidget(self.submit_btn, alignment=Qt.AlignmentFlag.AlignCenter)
+        
+        self.setCentralWidget(central_widget)
+        
+    def apply_lockdown(self):
+        # Force Fullscreen
+        self.setWindowFlags(
+            Qt.WindowType.FramelessWindowHint | 
+            Qt.WindowType.WindowStaysOnTopHint |
+            Qt.WindowType.Tool  # Hides from Alt-Tab in some OS
+        )
+        self.showFullScreen()
+        
+        # Enable OS blocks
+        if hasattr(self.anti_cheat, 'block_alt_tab'):
+            self.anti_cheat.block_alt_tab(True)
+        if hasattr(self.anti_cheat, 'disable_task_manager'):
+            self.anti_cheat.disable_task_manager(True)
+            
+    def confirm_quit(self):
+        reply = QMessageBox.question(
+            self, 'Confirm Submission',
+            'Are you sure you want to finish the exam and exit?',
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            self.release_lockdown()
+            self.request_quit.emit()
+            
+    def release_lockdown(self):
+        if hasattr(self.anti_cheat, 'block_alt_tab'):
+            self.anti_cheat.block_alt_tab(False)
+        if hasattr(self.anti_cheat, 'disable_task_manager'):
+            self.anti_cheat.disable_task_manager(False)
+            
+    def closeEvent(self, event):
+        # Prevent normal Alt+F4 or X button closing
+        event.ignore()
 
 
 class FocusGuardTray(QSystemTrayIcon):
@@ -465,8 +575,23 @@ def main():
     
     # Create tray application with exam data
     exam_code = exam_data.get("exam_code") if exam_data else None
+    
     tray = FocusGuardTray(app, student_id, exam_code=exam_code, token=token)
     
+    # Show Kiosk Window if this is a real student exam
+    kiosk_window = None
+    if exam_code and student_id != "TEST_STUDENT":
+        client_logger.info("Initializing Kiosk Lockdown Mode...")
+        kiosk_window = KioskWindow(exam_code, student_id, tray.anti_cheat)
+        kiosk_window.request_quit.connect(tray.quit)
+        
+        # Make anticheat monitor this window for focus loss
+        tray.anti_cheat.start_monitoring(window=kiosk_window)
+        kiosk_window.show()
+    else:
+        # Just run tray mode
+        tray.anti_cheat.start_monitoring()
+        
     # Run
     sys.exit(app.exec())
 
