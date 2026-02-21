@@ -36,6 +36,13 @@ deploy.bat server
 deploy.bat client
 ```
 
+### Packaging Windows Installer
+To create a single `Setup_SmartExaminer.exe` installer for distributing to students:
+1. Ensure you are on a **Windows** machine.
+2. Install [Inno Setup 6](https://jrsoftware.org/isdl.php).
+3. Run `build_windows.bat`.
+4. Answer `y` when prompted to package into a `Setup.exe` installer.
+
 ### Project Structure
 
 ```
@@ -97,6 +104,13 @@ deploy.bat install
 deploy.bat server
 deploy.bat client
 ```
+
+### Đóng gói File Cài đặt Windows
+Để tạo một file `Setup_SmartExaminer.exe` duy nhất gửi cho học sinh:
+1. Đảm bảo bạn đang mở dự án trên máy tính **Windows**.
+2. Cài đặt phần mềm [Inno Setup 6](https://jrsoftware.org/isdl.php).
+3. Click đúp chuột vào file `build_windows.bat`.
+4. Bấm `y` khi màn hình đen (CMD) hỏi có muốn đóng gói thành Setup.exe không.
 
 ### Hiệu năng
 

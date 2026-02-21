@@ -82,4 +82,12 @@ echo   2. Copy the entire dist\FocusGuard_Server folder to server machine
 echo   3. Run FocusGuard_Server.exe first
 echo   4. Then run FocusGuard_Client.exe on student machines
 echo.
+
+set /p BUILD_INSTALLER="Do you want to package this into a single Setup.exe installer? (y/n) "
+if /i "%BUILD_INSTALLER%"=="y" (
+    echo.
+    echo [*] Running Setup Installer Builder...
+    python build_installer.py
+)
+
 pause

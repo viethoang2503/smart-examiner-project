@@ -293,8 +293,10 @@ class KioskWindow(QMainWindow):
         )
         
         if reply == QMessageBox.StandardButton.Yes:
+            self._allow_quit = True
             self.release_lockdown()
             self.request_quit.emit()
+            self.close()
             
     def release_lockdown(self):
         if hasattr(self.anti_cheat, 'block_alt_tab'):
@@ -304,7 +306,10 @@ class KioskWindow(QMainWindow):
             
     def closeEvent(self, event):
         # Prevent normal Alt+F4 or X button closing
-        event.ignore()
+        if hasattr(self, '_allow_quit') and self._allow_quit:
+            event.accept()
+        else:
+            event.ignore()
 
 
 class FocusGuardTray(QSystemTrayIcon):
