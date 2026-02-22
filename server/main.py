@@ -38,6 +38,7 @@ class Violation:
     behavior: int
     behavior_name: str
     confidence: float
+    screenshot_path: Optional[str] = None
 
 
 @dataclass

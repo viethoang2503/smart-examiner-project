@@ -363,13 +363,16 @@ async def get_participants(
         db.close()
 
 
+class ViolationRequest(BaseModel):
+    behavior_type: int
+    behavior_name: str
+    confidence: float
+    screenshot: Optional[str] = None  # Base64 encoded image
+
 @router.post("/{exam_code}/violation")
 async def record_violation(
     exam_code: str,
-    behavior_type: int,
-    behavior_name: str,
-    confidence: float,
-    screenshot: Optional[str] = None,  # Base64 encoded image
+    violation_data: ViolationRequest,
     current_user: User = Depends(get_current_user)
 ):
     """Record a violation for a student in an exam with optional screenshot"""
@@ -393,18 +396,18 @@ async def record_violation(
         
         # Save screenshot if provided
         screenshot_path = None
-        if screenshot:
+        if violation_data.screenshot:
             try:
                 # Create uploads directory
-                uploads_dir = os.path.join(os.path.dirname(__file__), 'uploads', 'violations')
+                uploads_dir = os.path.join(os.path.dirname(__file__), '..', 'uploads', 'violations')
                 os.makedirs(uploads_dir, exist_ok=True)
                 
                 timestamp = datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')
-                filename = f"{exam_code}_{current_user.username}_{timestamp}_{behavior_name}.jpg"
+                filename = f"{exam_code}_{current_user.username}_{timestamp}_{violation_data.behavior_name.replace(' ', '_')}.jpg"
                 filepath = os.path.join(uploads_dir, filename)
                 
                 # Decode and save
-                img_data = base64.b64decode(screenshot)
+                img_data = base64.b64decode(violation_data.screenshot)
                 with open(filepath, 'wb') as f:
                     f.write(img_data)
                 
@@ -416,9 +419,9 @@ async def record_violation(
         violation = Violation(
             user_id=current_user.id,
             exam_id=exam.id,
-            behavior_type=behavior_type,
-            behavior_name=behavior_name,
-            confidence=str(confidence),
+            behavior_type=violation_data.behavior_type,
+            behavior_name=violation_data.behavior_name,
+            confidence=str(violation_data.confidence),
             screenshot_path=screenshot_path
         )
         db.add(violation)
@@ -432,11 +435,44 @@ async def record_violation(
         
         db.commit()
         
+        # Broadcast the new violation format with image via WebSockets
+        from .main import manager, Violation as WSViolation
+        import asyncio
+        from dataclasses import asdict
+        
+        # Student ID in dashboard is usually username
+        student_id_str = current_user.username
+        
+        ws_violation = WSViolation(
+            timestamp=datetime.now(timezone.utc).isoformat(),
+            behavior=violation_data.behavior_type,
+            behavior_name=violation_data.behavior_name,
+            confidence=violation_data.confidence,
+            screenshot_path=screenshot_path
+        )
+        
+        if student_id_str in manager.sessions:
+            manager.sessions[student_id_str].violations.append(ws_violation)
+        
+        violation_ws_data = {
+            "type": "violation",
+            "student_id": student_id_str,
+            "violation": asdict(ws_violation)
+        }
+        
+        # Fire and forget the broadcast
+        try:
+            # Check if event loop is running
+            loop = asyncio.get_running_loop()
+            loop.create_task(manager.broadcast_to_dashboards(violation_ws_data))
+        except RuntimeError:
+            pass
+        
         return {
             "message": "Violation recorded",
             "violation_count": participant.violation_count,
             "is_flagged": participant.is_flagged,
-            "has_screenshot": screenshot_path is not None
+            "screenshot_path": screenshot_path
         }
     finally:
         db.close()

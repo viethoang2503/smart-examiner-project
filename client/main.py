@@ -155,9 +155,9 @@ class ProctorEngine(threading.Thread):
                 # Send to server via API (with screenshot)
                 self._send_violation_to_api(label, behavior, confidence, screenshot_b64)
                 
-                # Also send via WebSocket for real-time display
-                if self.ws_client and self.ws_client.is_connected:
-                    self.ws_client.send_violation(label, confidence)
+                # We no longer send via WebSocket directly to avoid duplicates without images
+                # if self.ws_client and self.ws_client.is_connected:
+                #     self.ws_client.send_violation(label, confidence)
             else:
                 self.signals.status_changed.emit("Normal", StatusColor.GREEN)
             
@@ -177,7 +177,7 @@ class ProctorEngine(threading.Thread):
         try:
             response = requests.post(
                 f"http://{Config.SERVER_HOST}:{Config.SERVER_PORT}/api/exams/{self.exam_code}/violation",
-                params={
+                json={
                     "behavior_type": label,
                     "behavior_name": behavior,
                     "confidence": confidence,

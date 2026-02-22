@@ -1,42 +1,145 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>FocusGuard Dashboard</title>
     <style>
-        body { font-family: Arial; margin: 20px; background: #1a1a2e; color: #eee; }
-        h1 { color: #00d4ff; }
-        .stats { display: flex; gap: 20px; margin-bottom: 20px; }
-        .stat-card { background: #16213e; padding: 20px; border-radius: 10px; min-width: 150px; }
-        .stat-value { font-size: 32px; font-weight: bold; color: #00d4ff; }
-        .stat-label { color: #888; }
-        .student-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; }
-        .student-card { background: #16213e; padding: 15px; border-radius: 10px; border-left: 4px solid #00d4ff; }
-        .student-card.offline { border-left-color: #888; opacity: 0.7; }
-        .student-card.violation { border-left-color: #ff4444; animation: pulse 1s; }
-        .student-id { font-weight: bold; font-size: 18px; }
-        .online-badge { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; }
-        .online-badge.online { background: #00ff88; }
-        .online-badge.offline { background: #888; }
-        .violation-count { color: #ff4444; font-weight: bold; }
-        .violation-list { max-height: 150px; overflow-y: auto; font-size: 12px; margin-top: 10px; }
-        .violation-item { background: #0f0f23; padding: 5px 10px; margin: 5px 0; border-radius: 5px; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        body {
+            font-family: Arial;
+            margin: 20px;
+            background: #1a1a2e;
+            color: #eee;
+        }
+
+        h1 {
+            color: #00d4ff;
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: #16213e;
+            padding: 20px;
+            border-radius: 10px;
+            min-width: 150px;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #00d4ff;
+        }
+
+        .stat-label {
+            color: #888;
+        }
+
+        .student-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+        }
+
+        .student-card {
+            background: #16213e;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #00d4ff;
+        }
+
+        .student-card.offline {
+            border-left-color: #888;
+            opacity: 0.7;
+        }
+
+        .student-card.violation {
+            border-left-color: #ff4444;
+            animation: pulse 1s;
+        }
+
+        .student-id {
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .online-badge {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .online-badge.online {
+            background: #00ff88;
+        }
+
+        .online-badge.offline {
+            background: #888;
+        }
+
+        .violation-count {
+            color: #ff4444;
+            font-weight: bold;
+        }
+
+        .violation-list {
+            max-height: 150px;
+            overflow-y: auto;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+
+        .violation-item {
+            background: #0f0f23;
+            padding: 5px 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
     </style>
 </head>
+
 <body>
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
         <h1 style="margin: 0;">FocusGuard Dashboard</h1>
         <div>
             <a href="/dashboard" style="color: #00d4ff; margin-right: 15px; text-decoration: none;">Dashboard</a>
             <a href="/admin" style="color: #888; margin-right: 15px; text-decoration: none;">Users</a>
-            <a href="/exams" style="color: #ff9800; margin-right: 15px; text-decoration: none; font-weight: bold;">📝 Exams</a>
-            <button onclick="logout()" style="background: #f44336; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">Logout</button>
+            <a href="/exams" style="color: #ff9800; margin-right: 15px; text-decoration: none; font-weight: bold;">📝
+                Exams</a>
+            <button onclick="logout()"
+                style="background: #f44336; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">Logout</button>
         </div>
     </div>
     <div class="stats">
-        <div class="stat-card"><div class="stat-value" id="total-students">0</div><div class="stat-label">Total Students</div></div>
-        <div class="stat-card"><div class="stat-value" id="online-students">0</div><div class="stat-label">Online</div></div>
-        <div class="stat-card"><div class="stat-value" id="total-violations">0</div><div class="stat-label">Violations</div></div>
+        <div class="stat-card">
+            <div class="stat-value" id="total-students">0</div>
+            <div class="stat-label">Total Students</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="online-students">0</div>
+            <div class="stat-label">Online</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="total-violations">0</div>
+            <div class="stat-label">Violations</div>
+        </div>
     </div>
     <h2>Students</h2>
     <div class="student-grid" id="students"></div>
@@ -50,7 +153,7 @@
                 updateStats(data.stats);
                 renderStudents();
             } else if (data.type === 'student_connected') {
-                sessions[data.student_id] = sessions[data.student_id] || {student_id: data.student_id, is_online: true, violation_count: 0, violations: []};
+                sessions[data.student_id] = sessions[data.student_id] || { student_id: data.student_id, is_online: true, violation_count: 0, violations: [] };
                 sessions[data.student_id].is_online = true;
                 renderStudents();
                 fetchStats();
@@ -78,8 +181,12 @@
             document.getElementById('students').innerHTML = Object.values(sessions).map(s => `
                 <div class="student-card ${s.is_online ? '' : 'offline'}" id="student-${s.student_id}">
                     <div><span class="online-badge ${s.is_online ? 'online' : 'offline'}"></span><span class="student-id">${s.student_id}</span></div>
-                    <div>Violations: <span class="violation-count">${s.violation_count || 0}</span></div>
-                    <div class="violation-list">${(s.violations || []).slice(0, 5).map(v => `<div class="violation-item">${v.behavior_name} - ${new Date(v.timestamp).toLocaleTimeString()}</div>`).join('')}</div>
+                    <div class="violation-list">${(s.violations || []).slice(0, 5).map(v => `
+                        <div class="violation-item">
+                            <div>${v.behavior_name} - ${new Date(v.timestamp).toLocaleTimeString()}</div>
+                            ${v.screenshot_path ? `<img src="${v.screenshot_path}" style="max-width: 100%; margin-top: 5px; border-radius: 3px; border: 1px solid #f44336;" alt="Violation Snapshot">` : ''}
+                        </div>
+                    `).join('')}</div>
                 </div>
             `).join('');
         }
@@ -94,4 +201,5 @@
         }
     </script>
 </body>
+
 </html>
