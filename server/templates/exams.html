@@ -267,23 +267,23 @@
             <h3>Create New Exam</h3>
             <form id="createForm">
                 <div style="margin-bottom: 12px;">
-                    <label style="display: block; color: #888; font-size: 12px; margin-bottom: 4px;">📝 Exam
+                    <label style="display: block; color: #888; font-size: 12px; margin-bottom: 4px;">Exam
                         Name</label>
                     <input type="text" id="examName" placeholder="e.g. Midterm Math" required style="width: 100%;">
                 </div>
                 <div style="margin-bottom: 12px;">
-                    <label style="display: block; color: #888; font-size: 12px; margin-bottom: 4px;">📅 Exam
+                    <label style="display: block; color: #888; font-size: 12px; margin-bottom: 4px;">Exam
                         Date</label>
                     <input type="date" id="examDate" required style="width: 100%;">
                 </div>
                 <div style="margin-bottom: 12px;">
-                    <label style="display: block; color: #888; font-size: 12px; margin-bottom: 4px;">⏱️ Duration
+                    <label style="display: block; color: #888; font-size: 12px; margin-bottom: 4px;">Duration
                         (minutes)</label>
                     <input type="number" id="duration" placeholder="60" value="60" min="1" required
                         style="width: 100%;">
                 </div>
                 <div style="margin-bottom: 12px;">
-                    <label style="display: block; color: #888; font-size: 12px; margin-bottom: 4px;">⚠️ Max Violations
+                    <label style="display: block; color: #888; font-size: 12px; margin-bottom: 4px;">Max Violations
                         (auto-flag if exceeded)</label>
                     <input type="number" id="maxViolations" placeholder="5" value="5" min="1" required
                         style="width: 100%;">
@@ -318,7 +318,7 @@
                     <h2 id="detailName">-</h2>
                     <div class="exam-code" id="detailCode">-</div>
                 </div>
-                <button class="btn btn-secondary" onclick="hideDetail()">← Back</button>
+                <button class="btn btn-secondary" onclick="hideDetail()">Back</button>
             </div>
 
             <div class="stats">
@@ -339,8 +339,8 @@
             <div class="timer normal" id="countdown">--:--</div>
 
             <div style="margin: 15px 0; text-align: center;">
-                <button class="btn btn-success" id="startBtn" onclick="startExam()">▶ Start Exam</button>
-                <button class="btn btn-danger" id="endBtn" onclick="endExam()">⬛ End Exam</button>
+                <button class="btn btn-success" id="startBtn" onclick="startExam()">Start Exam</button>
+                <button class="btn btn-danger" id="endBtn" onclick="endExam()">End Exam</button>
             </div>
 
             <h3>Participants</h3>
@@ -459,7 +459,7 @@
                         Violations: <strong style="color: ${p.is_flagged ? '#f44336' : '#fff'}">${p.violation_count}</strong>
                         ${p.is_flagged ? '<span class="badge badge-flagged">FLAGGED</span>' : ''}
                     </div>
-                    <button class="btn btn-primary" style="margin-top: 8px; padding: 5px 10px; font-size: 11px;" onclick="event.stopPropagation(); viewViolations(${p.user_id}, '${p.full_name}')">📷 View Report</button>
+                    <button class="btn btn-primary" style="margin-top: 8px; padding: 5px 10px; font-size: 11px;" onclick="event.stopPropagation(); viewViolations(${p.user_id}, '${p.full_name}')">View Report</button>
                 </div>
             `).join('') || '<p style="color: #888;">No participants yet</p>';
         }
@@ -539,7 +539,7 @@
             let html = `<h2>Violations Report: ${userName}</h2>
                 <p>Exam: ${currentExam.exam_name} (${currentExam.exam_code})</p>
                 <p>Total Violations: ${violations.length}</p>
-                <button class="btn btn-secondary" onclick="loadParticipants()">← Back</button>
+                <button class="btn btn-secondary" onclick="loadParticipants()">Back</button>
                 <hr style="border-color: #333; margin: 15px 0;">`;
 
             if (violations.length === 0) {

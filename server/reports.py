@@ -141,7 +141,7 @@ class ReportGenerator:
         if participants:
             participant_data = [['STT', 'Tên / Name', 'Vi phạm / Violations', 'Trạng thái / Status']]
             for i, p in enumerate(participants, 1):
-                status = "🚩 Flagged" if p.get('is_flagged', False) else "✓ Normal"
+                status = "Flagged" if p.get('is_flagged', False) else "Normal"
                 participant_data.append([
                     str(i),
                     p.get('full_name', 'N/A'),
@@ -399,7 +399,7 @@ if __name__ == "__main__":
         violations=violations,
         participants=participants
     )
-    print(f"✅ PDF Report: {pdf_path}")
+    print(f"PDF Report: {pdf_path}")
     
     excel_path = generator.generate_excel_report(
         exam_name="Kiểm tra giữa kỳ Toán",
@@ -408,8 +408,8 @@ if __name__ == "__main__":
         violations=violations,
         participants=participants
     )
-    print(f"✅ Excel Report: {excel_path}")
+    print(f"Excel Report: {excel_path}")
     
     # Statistics
     stats = generator.get_statistics(violations, participants)
-    print(f"\n📊 Statistics: {stats}")
+    print(f"\nStatistics: {stats}")

@@ -201,7 +201,7 @@ class ExamJoinDialog(QDialog):
                 }
                 
                 # Show success and close
-                self.exam_info.setText(f"✓ Joined: {data.get('exam_name')}")
+                self.exam_info.setText(f"Joined: {data.get('exam_name')}")
                 self.exam_joined.emit(self.exam_data)
                 self.accept()
                 

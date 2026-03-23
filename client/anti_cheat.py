@@ -278,14 +278,14 @@ class WindowsAntiCheat(AntiCheatMonitor):
                 if not self._keyboard_hook:
                     print(f"[AntiCheat] Failed to install keyboard hook. Error: {ctypes.GetLastError()}")
                 else:
-                    print("[AntiCheat] 🛡️ Alt+Tab & Windows Key blocking ENFORCED!")
+                    print("[AntiCheat] Alt+Tab & Windows Key blocking ENFORCED!")
                     
             else:
                 if getattr(self, '_keyboard_hook', None) is not None:
                     user32.UnhookWindowsHookEx(self._keyboard_hook)
                     self._keyboard_hook = None
                     self._hook_func_pointer = None
-                    print("[AntiCheat] 🔓 OS shortcut blocking disabled")
+                    print("[AntiCheat] OS shortcut blocking disabled")
                     
         except Exception as e:
             print(f"[AntiCheat] Alt+Tab block error: {e}")
@@ -318,10 +318,10 @@ class WindowsAntiCheat(AntiCheatMonitor):
             winreg.SetValueEx(key, "DisableTaskMgr", 0, winreg.REG_DWORD, value)
             winreg.CloseKey(key)
             
-            print(f"[AntiCheat] 🛡️ Task Manager {'DISABLED (Locked)' if disable else 'Enabled'}!")
+            print(f"[AntiCheat] Task Manager {'DISABLED (Locked)' if disable else 'Enabled'}!")
             
         except PermissionError:
-            print("[AntiCheat] ⚠️ Cannot disable Task Manager: Administrator privileges required.")
+            print("[AntiCheat] Cannot disable Task Manager: Administrator privileges required.")
         except Exception as e:
             print(f"[AntiCheat] Task Manager control error: {e}")
 
@@ -368,7 +368,7 @@ def get_anti_cheat_monitor(on_violation: Optional[Callable] = None) -> AntiCheat
 # Test
 if __name__ == "__main__":
     def on_cheat(violation):
-        print(f"🚨 CHEAT DETECTED: {violation}")
+        print(f"CHEAT DETECTED: {violation}")
     
     monitor = get_anti_cheat_monitor(on_violation=on_cheat)
     

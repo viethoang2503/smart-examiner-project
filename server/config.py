@@ -34,8 +34,8 @@ class ServerConfig:
         if not key or key == "CHANGE_ME_TO_A_RANDOM_SECRET_KEY":
             # Auto-generate a key and warn
             key = secrets.token_urlsafe(64)
-            print("[Config] ⚠️  WARNING: JWT_SECRET_KEY not set! Using auto-generated key.")
-            print("[Config] ⚠️  This key will change on restart. Set JWT_SECRET_KEY in .env file.")
+            print("[Config] WARNING: JWT_SECRET_KEY not set! Using auto-generated key.")
+            print("[Config] This key will change on restart. Set JWT_SECRET_KEY in .env file.")
         return key
     
     JWT_ALGORITHM: str = "HS256"

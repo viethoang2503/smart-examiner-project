@@ -69,12 +69,12 @@ class FaceDetector:
         model_path = os.path.join(model_dir, 'face_landmarker.task')
         
         if not os.path.exists(model_path):
-            print("⏳ Downloading face landmarker model...")
+            print("Downloading face landmarker model...")
             model_url = "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task"
             
             try:
                 urllib.request.urlretrieve(model_url, model_path)
-                print(f"✅ Model downloaded to: {model_path}")
+                print(f"Model downloaded to: {model_path}")
             except Exception as e:
                 raise RuntimeError(f"Failed to download model: {e}")
         

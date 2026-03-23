@@ -50,7 +50,7 @@ class BehaviorClassifier:
         
         try:
             self.model = joblib.load(self.model_path)
-            print(f"✅ Model loaded from: {self.model_path}")
+            print(f"Model loaded from: {self.model_path}")
         except Exception as e:
             raise RuntimeError(f"Failed to load model: {e}")
     

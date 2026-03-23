@@ -221,7 +221,7 @@ class KioskWindow(QMainWindow):
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
         # Warning icon/text
-        warning = QLabel("🔒 SECURE EXAM IN PROGRESS")
+        warning = QLabel("SECURE EXAM IN PROGRESS")
         warning.setFont(QFont("Arial", 48, QFont.Weight.Bold))
         warning.setStyleSheet("color: #ff4444;")
         warning.setAlignment(Qt.AlignmentFlag.AlignCenter)
