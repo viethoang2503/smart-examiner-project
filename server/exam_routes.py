@@ -399,7 +399,7 @@ async def record_violation(
         if violation_data.screenshot:
             try:
                 # Create uploads directory
-                uploads_dir = os.path.join(os.path.dirname(__file__), '..', 'uploads', 'violations')
+                uploads_dir = os.path.join(os.path.dirname(__file__), 'uploads', 'violations')
                 os.makedirs(uploads_dir, exist_ok=True)
                 
                 timestamp = datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')

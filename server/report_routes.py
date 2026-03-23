@@ -5,10 +5,9 @@ Endpoints for generating and downloading reports
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
-from typing import Optional
-from datetime import datetime
+from sqlalchemy.orm import Session
 
-from .auth import get_current_user
+from .auth import get_current_user, require_role
 from .database import get_db, ExamSession, Violation, ExamParticipant, User
 from .reports import ReportGenerator
 
@@ -18,33 +17,28 @@ router = APIRouter(prefix="/api/reports", tags=["reports"])
 @router.get("/{exam_code}/pdf")
 async def download_pdf_report(
     exam_code: str,
-    current_user: dict = Depends(get_current_user)
+    current_user: User = Depends(require_role("admin", "teacher")),
+    db: Session = Depends(get_db)
 ):
     """Download PDF report for an exam"""
-    
-    db = get_db()
-    
+
     # Get exam
-    exam = db.query(ExamSession).filter(ExamSession.exam_code == exam_code).first()
+    exam = db.query(ExamSession).filter(ExamSession.exam_code == exam_code.upper()).first()
     if not exam:
         raise HTTPException(status_code=404, detail="Exam not found")
-    
-    # Check permission (admin/teacher only)
-    if current_user.get('role') not in ['admin', 'teacher']:
-        raise HTTPException(status_code=403, detail="Permission denied")
-    
+
     # Get violations
-    violations = db.query(Violation).filter(Violation.exam_code == exam_code).all()
+    violations = db.query(Violation).filter(Violation.exam_id == exam.id).all()
     violation_list = []
     for v in violations:
         user = db.query(User).filter(User.id == v.user_id).first()
         violation_list.append({
             'timestamp': v.timestamp.isoformat() if v.timestamp else '',
             'student_name': user.full_name if user else 'Unknown',
-            'behavior': v.behavior,
+            'behavior': v.behavior_name,
             'confidence': v.confidence
         })
-    
+
     # Get participants
     participants = db.query(ExamParticipant).filter(
         ExamParticipant.exam_id == exam.id
@@ -78,33 +72,28 @@ async def download_pdf_report(
 @router.get("/{exam_code}/excel")
 async def download_excel_report(
     exam_code: str,
-    current_user: dict = Depends(get_current_user)
+    current_user: User = Depends(require_role("admin", "teacher")),
+    db: Session = Depends(get_db)
 ):
     """Download Excel report for an exam"""
-    
-    db = get_db()
-    
+
     # Get exam
-    exam = db.query(ExamSession).filter(ExamSession.exam_code == exam_code).first()
+    exam = db.query(ExamSession).filter(ExamSession.exam_code == exam_code.upper()).first()
     if not exam:
         raise HTTPException(status_code=404, detail="Exam not found")
-    
-    # Check permission
-    if current_user.get('role') not in ['admin', 'teacher']:
-        raise HTTPException(status_code=403, detail="Permission denied")
-    
+
     # Get violations
-    violations = db.query(Violation).filter(Violation.exam_code == exam_code).all()
+    violations = db.query(Violation).filter(Violation.exam_id == exam.id).all()
     violation_list = []
     for v in violations:
         user = db.query(User).filter(User.id == v.user_id).first()
         violation_list.append({
             'timestamp': v.timestamp.isoformat() if v.timestamp else '',
             'student_name': user.full_name if user else 'Unknown',
-            'behavior': v.behavior,
+            'behavior': v.behavior_name,
             'confidence': v.confidence
         })
-    
+
     # Get participants
     participants = db.query(ExamParticipant).filter(
         ExamParticipant.exam_id == exam.id
@@ -138,23 +127,22 @@ async def download_excel_report(
 @router.get("/{exam_code}/statistics")
 async def get_exam_statistics(
     exam_code: str,
-    current_user: dict = Depends(get_current_user)
+    current_user: User = Depends(require_role("admin", "teacher")),
+    db: Session = Depends(get_db)
 ):
     """Get statistics for an exam"""
-    
-    db = get_db()
-    
+
     # Get exam
-    exam = db.query(ExamSession).filter(ExamSession.exam_code == exam_code).first()
+    exam = db.query(ExamSession).filter(ExamSession.exam_code == exam_code.upper()).first()
     if not exam:
         raise HTTPException(status_code=404, detail="Exam not found")
-    
+
     # Get violations
-    violations = db.query(Violation).filter(Violation.exam_code == exam_code).all()
+    violations = db.query(Violation).filter(Violation.exam_id == exam.id).all()
     violation_list = [
         {
             'timestamp': v.timestamp.isoformat() if v.timestamp else '',
-            'behavior': v.behavior,
+            'behavior': v.behavior_name,
             'confidence': v.confidence
         }
         for v in violations
