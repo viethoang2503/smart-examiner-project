@@ -204,6 +204,10 @@ async def get_exam(
         if not exam:
             raise HTTPException(status_code=404, detail="Exam not found")
         
+        # Teachers can only view their own exams
+        if current_user.role == "teacher" and exam.teacher_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Access denied: not your exam")
+        
         teacher = db.query(User).filter(User.id == exam.teacher_id).first()
         participants = db.query(ExamParticipant).filter(ExamParticipant.exam_id == exam.id).all()
         online = sum(1 for p in participants if p.is_online)
@@ -289,6 +293,10 @@ async def start_exam(
         if not exam:
             raise HTTPException(status_code=404, detail="Exam not found")
         
+        # Teachers can only start their own exams
+        if current_user.role == "teacher" and exam.teacher_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Access denied: not your exam")
+        
         if exam.status != "pending":
             raise HTTPException(status_code=400, detail=f"Exam is already {exam.status}")
         
@@ -312,6 +320,10 @@ async def end_exam(
         exam = db.query(ExamSession).filter(ExamSession.exam_code == exam_code.upper()).first()
         if not exam:
             raise HTTPException(status_code=404, detail="Exam not found")
+        
+        # Teachers can only end their own exams
+        if current_user.role == "teacher" and exam.teacher_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Access denied: not your exam")
         
         exam.status = "ended"
         exam.ended_at = datetime.now(timezone.utc)
@@ -339,6 +351,10 @@ async def get_participants(
         exam = db.query(ExamSession).filter(ExamSession.exam_code == exam_code.upper()).first()
         if not exam:
             raise HTTPException(status_code=404, detail="Exam not found")
+        
+        # Teachers can only view participants of their own exams
+        if current_user.role == "teacher" and exam.teacher_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Access denied: not your exam")
         
         participants = db.query(ExamParticipant).filter(ExamParticipant.exam_id == exam.id).all()
         
@@ -503,6 +519,10 @@ async def get_violations(
         exam = db.query(ExamSession).filter(ExamSession.exam_code == exam_code.upper()).first()
         if not exam:
             raise HTTPException(status_code=404, detail="Exam not found")
+        
+        # Teachers can only view violations of their own exams
+        if current_user.role == "teacher" and exam.teacher_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Access denied: not your exam")
         
         query = db.query(Violation).filter(Violation.exam_id == exam.id)
         

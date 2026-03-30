@@ -44,7 +44,8 @@ class Config:
     """Default configuration values"""
     
     # Server settings
-    SERVER_HOST = "0.0.0.0"
+    SERVER_BIND_HOST = "0.0.0.0"  # Address for server to bind (listen on all interfaces)
+    SERVER_HOST = "127.0.0.1"     # Address for clients to connect to
     SERVER_PORT = 8000
     
     # Client settings

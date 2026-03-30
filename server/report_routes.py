@@ -27,6 +27,10 @@ async def download_pdf_report(
     if not exam:
         raise HTTPException(status_code=404, detail="Exam not found")
 
+    # Teachers can only access reports for their own exams
+    if current_user.role == "teacher" and exam.teacher_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied: not your exam")
+
     # Get violations
     violations = db.query(Violation).filter(Violation.exam_id == exam.id).all()
     violation_list = []
@@ -82,6 +86,10 @@ async def download_excel_report(
     if not exam:
         raise HTTPException(status_code=404, detail="Exam not found")
 
+    # Teachers can only access reports for their own exams
+    if current_user.role == "teacher" and exam.teacher_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied: not your exam")
+
     # Get violations
     violations = db.query(Violation).filter(Violation.exam_id == exam.id).all()
     violation_list = []
@@ -136,6 +144,10 @@ async def get_exam_statistics(
     exam = db.query(ExamSession).filter(ExamSession.exam_code == exam_code.upper()).first()
     if not exam:
         raise HTTPException(status_code=404, detail="Exam not found")
+
+    # Teachers can only access statistics for their own exams
+    if current_user.role == "teacher" and exam.teacher_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied: not your exam")
 
     # Get violations
     violations = db.query(Violation).filter(Violation.exam_id == exam.id).all()

@@ -479,11 +479,7 @@ class FocusGuardTray(QSystemTrayIcon):
         
         # Send to server
         if self.ws_client.is_connected:
-            self.ws_client.send_violation(
-                behavior=99,  # Special code for anti-cheat violations
-                confidence=1.0,
-                behavior_name=f"[AntiCheat] {behavior_name}"
-            )
+            self.ws_client.send_violation(99, 1.0)  # 99 = anti-cheat violation code
         
         # Show notification
         self.showMessage(

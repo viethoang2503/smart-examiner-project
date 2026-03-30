@@ -174,7 +174,7 @@ class ReportGenerator:
                     v.get('timestamp', 'N/A')[:19],
                     v.get('student_name', 'N/A'),
                     v.get('behavior', 'N/A'),
-                    f"{v.get('confidence', 0)*100:.1f}%"
+                    f"{float(v.get('confidence', 0))*100:.1f}%"
                 ])
             
             violation_table = Table(violation_data, colWidths=[4*cm, 4*cm, 4*cm, 3*cm])
@@ -324,7 +324,7 @@ class ReportGenerator:
             ws_violations.cell(row=i+1, column=1, value=v.get('timestamp', 'N/A'))
             ws_violations.cell(row=i+1, column=2, value=v.get('student_name', 'N/A'))
             ws_violations.cell(row=i+1, column=3, value=v.get('behavior', 'N/A'))
-            ws_violations.cell(row=i+1, column=4, value=f"{v.get('confidence', 0)*100:.1f}%")
+            ws_violations.cell(row=i+1, column=4, value=f"{float(v.get('confidence', 0))*100:.1f}%")
         
         # Auto-adjust column widths
         for ws in [ws_summary, ws_participants, ws_violations]:
