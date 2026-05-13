@@ -1,45 +1,45 @@
 # FocusGuard - Smart Examiner
 
-FocusGuard là hệ thống giám sát thi cử sử dụng AI, computer vision và cơ chế anti-cheat để hỗ trợ giáo viên theo dõi thí sinh trong thời gian thực. Project gồm ứng dụng client chạy trên máy sinh viên, server quản lý kỳ thi, dashboard cho giáo viên, cơ sở dữ liệu lưu tài khoản/kỳ thi/vi phạm, cùng pipeline huấn luyện model nhận diện hành vi.
+FocusGuard is an AI-powered exam proctoring system that uses computer vision, machine learning, realtime networking, and anti-cheat monitoring to help teachers supervise students during online or computer-based exams. The project includes a student client, a FastAPI backend, teacher/admin dashboards, a SQLite database, evidence capture, report generation, and an ML training pipeline.
 
-## Mục Lục
+## Table of Contents
 
-- [Tính năng chính](#tính-năng-chính)
+- [Key Features](#key-features)
 - [System Architecture](#system-architecture)
-- [Cấu trúc thư mục](#cấu-trúc-thư-mục)
-- [Yêu cầu hệ thống](#yêu-cầu-hệ-thống)
-- [Cài đặt nhanh](#cài-đặt-nhanh)
-- [Cấu hình môi trường](#cấu-hình-môi-trường)
-- [Cách chạy hệ thống](#cách-chạy-hệ-thống)
-- [Tài khoản và quy trình sử dụng](#tài-khoản-và-quy-trình-sử-dụng)
-- [API chính](#api-chính)
-- [AI proctoring pipeline](#ai-proctoring-pipeline)
-- [Cơ sở dữ liệu](#cơ-sở-dữ-liệu)
+- [Project Structure](#project-structure)
+- [System Requirements](#system-requirements)
+- [Quick Start](#quick-start)
+- [Environment Configuration](#environment-configuration)
+- [Running the System](#running-the-system)
+- [Accounts and Workflow](#accounts-and-workflow)
+- [Main API Endpoints](#main-api-endpoints)
+- [AI Proctoring Pipeline](#ai-proctoring-pipeline)
+- [Database](#database)
 - [Testing](#testing)
-- [Build và đóng gói](#build-và-đóng-gói)
+- [Build and Packaging](#build-and-packaging)
 - [Troubleshooting](#troubleshooting)
-- [Tài liệu bổ sung](#tài-liệu-bổ-sung)
+- [Additional Documentation](#additional-documentation)
 - [License](#license)
 
-## Tính Năng Chính
+## Key Features
 
-- Nhận diện khuôn mặt bằng MediaPipe Face Landmarker.
-- Trích xuất landmark khuôn mặt, head pose, gaze và mouth aspect ratio.
-- Phân loại hành vi bằng model Random Forest đã huấn luyện.
-- Phát hiện các vi phạm chính: bình thường, nhìn trái, nhìn phải, cúi đầu.
-- Lọc nhiễu theo số frame liên tiếp và thời lượng vi phạm để giảm false positive.
-- Chụp ảnh bằng chứng khi có vi phạm và gửi về server.
-- Kết nối WebSocket realtime giữa client sinh viên và dashboard giáo viên.
-- Quản lý tài khoản theo vai trò: admin, teacher, student.
-- Quản lý kỳ thi bằng mã exam code 6 ký tự.
-- Dashboard web cho đăng nhập, quản lý kỳ thi, theo dõi sinh viên và xem vi phạm.
-- Kiosk mode và anti-cheat cơ bản: fullscreen, phát hiện mất focus, minimize, nhiều màn hình; trên Windows có thêm chặn một số phím tắt hệ điều hành.
-- Xuất báo cáo PDF và Excel cho kỳ thi.
-- Script deploy cho Windows, Linux/macOS và script build installer Windows.
+- Face detection with MediaPipe Face Landmarker.
+- Facial landmark extraction, head pose estimation, gaze analysis, and mouth aspect ratio calculation.
+- Behavior classification with a trained Random Forest model.
+- Detection of core behaviors: normal, looking left, looking right, and head down.
+- Noise filtering based on consecutive frames and continuous violation duration to reduce false positives.
+- Screenshot evidence capture when a violation is detected.
+- Realtime WebSocket communication between student clients and teacher dashboards.
+- Role-based account management for admin, teacher, and student users.
+- Exam management with 6-character exam codes.
+- Web dashboard for login, exam management, student monitoring, and violation review.
+- Kiosk mode and basic anti-cheat monitoring: fullscreen exam window, focus loss detection, minimize detection, multiple-monitor detection, and additional shortcut blocking on Windows.
+- PDF and Excel report generation.
+- Deployment scripts for Windows and Linux/macOS, plus Windows installer packaging support.
 
 ## System Architecture
 
-### Tổng Quan Thành Phần
+### Component Overview
 
 ```mermaid
 flowchart LR
@@ -79,7 +79,7 @@ flowchart LR
     WS --> Server
 ```
 
-### Luồng Dữ Liệu Khi Thi
+### Exam Monitoring Data Flow
 
 ```mermaid
 sequenceDiagram
@@ -90,46 +90,46 @@ sequenceDiagram
     participant D as Teacher Dashboard
     participant DB as SQLite DB
 
-    S->>B: Login bằng username/password
+    S->>B: Login with username/password
     B-->>S: JWT access token
-    S->>B: Join exam bằng exam_code
-    B-->>S: Exam info
+    S->>B: Join exam with exam_code
+    B-->>S: Exam information
     S->>B: WebSocket connect + heartbeat
-    D->>B: WebSocket dashboard connect
+    D->>B: Dashboard WebSocket connect
 
     loop Monitoring
         C-->>S: Frame
         S->>A: Detect face + extract features
         A-->>S: Behavior label + confidence
-        alt Có vi phạm đủ ngưỡng
+        alt Confirmed violation
             S->>S: Capture screenshot evidence
             S->>B: POST /api/exams/{code}/violation
-            B->>DB: Lưu violation + update participant
+            B->>DB: Save violation + update participant
             B-->>D: Broadcast realtime violation
-        else Bình thường
-            S->>B: Heartbeat định kỳ
+        else Normal behavior
+            S->>B: Periodic heartbeat
         end
     end
 ```
 
-### Các Layer Chính
+### Main Layers
 
-| Layer | Thư mục/File | Vai trò |
+| Layer | Directory/File | Responsibility |
 |---|---|---|
-| Client UI | `client/main.py`, `client/gui/` | Login, join exam, tray app, kiosk window |
-| AI Engine | `client/ai_engine/` | Face detection, geometry features, classifier, screenshot evidence |
-| Anti-cheat | `client/anti_cheat.py` | Giám sát focus/minimize/multiple monitors và một số shortcut trên Windows |
-| Network Client | `client/network/websocket_client.py` | WebSocket realtime, heartbeat, reconnect |
+| Client UI | `client/main.py`, `client/gui/` | Login, exam join flow, system tray app, kiosk window |
+| AI Engine | `client/ai_engine/` | Face detection, geometric feature extraction, behavior classification, screenshot evidence |
+| Anti-cheat | `client/anti_cheat.py` | Focus/minimize/multiple-monitor monitoring and selected Windows shortcut blocking |
+| Network Client | `client/network/websocket_client.py` | Realtime WebSocket connection, heartbeat, reconnect logic |
 | Server App | `server/main.py` | FastAPI app, WebSocket manager, route registration |
-| Auth API | `server/auth.py`, `server/auth_routes.py` | JWT auth, role-based access, user management |
-| Exam API | `server/exam_routes.py` | Tạo kỳ thi, join/start/end exam, ghi nhận violation |
-| Report API | `server/report_routes.py`, `server/reports.py` | Thống kê và xuất PDF/Excel |
-| Database | `server/database.py` | SQLAlchemy models và SQLite session |
-| Shared | `shared/` | Constants, message types, logging config |
-| ML | `ml/` | Training data, train script, model artifacts |
-| Tests | `tests/` | Integration, latency, stress, database, reports |
+| Auth API | `server/auth.py`, `server/auth_routes.py` | JWT authentication, role-based access control, user management |
+| Exam API | `server/exam_routes.py` | Exam creation, join/start/end actions, violation recording |
+| Report API | `server/report_routes.py`, `server/reports.py` | Statistics, PDF reports, Excel reports |
+| Database | `server/database.py` | SQLAlchemy models and SQLite sessions |
+| Shared | `shared/` | Constants, message types, logging configuration |
+| ML | `ml/` | Training data, training scripts, model artifacts |
+| Tests | `tests/` | Integration, latency, stress, database, report, and anti-cheat tests |
 
-## Cấu Trúc Thư Mục
+## Project Structure
 
 ```text
 smart-examiner-project/
@@ -179,32 +179,32 @@ smart-examiner-project/
 └── README.md
 ```
 
-## Yêu Cầu Hệ Thống
+## System Requirements
 
-### Phần mềm
+### Software
 
-- Python 3.10 trở lên được khuyến nghị.
-- pip và venv.
-- Webcam hoạt động.
-- Trình duyệt web hiện đại cho dashboard.
-- Windows được khuyến nghị nếu muốn dùng đầy đủ kiosk/anti-cheat OS-level.
+- Python 3.10 or newer is recommended.
+- pip and venv.
+- A working webcam.
+- A modern web browser for the dashboard.
+- Windows is recommended for the full kiosk and OS-level anti-cheat behavior.
 
-### Python packages chính
+### Main Python Packages
 
-Project sử dụng các nhóm package sau:
+The project uses these main dependency groups:
 
 - Computer vision: `opencv-python`, `mediapipe`, `numpy`
 - Machine learning: `scikit-learn`, `joblib`
 - GUI: `PyQt6`
 - Backend: `fastapi`, `uvicorn`, `websockets`
 - Database: `sqlalchemy`
-- Auth: `bcrypt`, `python-jose`
+- Authentication: `bcrypt`, `python-jose`
 - Reports: `reportlab`, `openpyxl`
 - Testing: `pytest`, `pytest-asyncio`, `requests`, `httpx`
 
-Toàn bộ dependencies nằm trong `requirements.txt`.
+All dependencies are listed in `requirements.txt`.
 
-## Cài Đặt Nhanh
+## Quick Start
 
 ### Windows
 
@@ -214,7 +214,7 @@ deploy.bat install
 deploy.bat server
 ```
 
-Mở terminal mới để chạy client:
+Open a new terminal to run the student client:
 
 ```bat
 cd smart-examiner-project
@@ -230,14 +230,14 @@ chmod +x deploy.sh
 ./deploy.sh server
 ```
 
-Mở terminal mới để chạy client:
+Open a new terminal to run the student client:
 
 ```bash
 cd smart-examiner-project
 ./deploy.sh client
 ```
 
-### Cài thủ công bằng venv
+### Manual Setup with venv
 
 Windows:
 
@@ -261,11 +261,11 @@ pip install -r requirements.txt
 python run_server.py
 ```
 
-## Cấu Hình Môi Trường
+## Environment Configuration
 
-Server đọc cấu hình từ biến môi trường và file `.env` tại project root nếu tồn tại.
+The server reads configuration from environment variables and from a `.env` file in the project root if one exists.
 
-Ví dụ `.env`:
+Example `.env`:
 
 ```env
 JWT_SECRET_KEY=change-this-to-a-long-random-secret
@@ -277,80 +277,80 @@ FOCUSGUARD_DB_PATH=server/focusguard.db
 CAMERA_INDEX=0
 ```
 
-Các biến quan trọng:
+Important variables:
 
-| Biến | Mặc định | Ý nghĩa |
+| Variable | Default | Meaning |
 |---|---|---|
-| `JWT_SECRET_KEY` | auto-generated | Secret ký JWT. Nên đặt cố định trong môi trường thật. |
-| `SERVER_HOST` | `0.0.0.0` | Địa chỉ server bind. |
-| `SERVER_PORT` | `8000` | Port HTTP/WebSocket. |
-| `DEBUG` | `true` | Chế độ debug. |
-| `CORS_ORIGINS` | `*` | Danh sách origin được phép gọi API. |
-| `FOCUSGUARD_DB_PATH` | `server/focusguard.db` | Đường dẫn SQLite database được `server/database.py` sử dụng. |
-| `CAMERA_INDEX` | `0` | Index webcam mặc định. |
+| `JWT_SECRET_KEY` | auto-generated | Secret used to sign JWT tokens. Use a fixed value in real deployments. |
+| `SERVER_HOST` | `0.0.0.0` | Server bind address. |
+| `SERVER_PORT` | `8000` | HTTP/WebSocket port. |
+| `DEBUG` | `true` | Debug mode flag. |
+| `CORS_ORIGINS` | `*` | Allowed API origins. |
+| `FOCUSGUARD_DB_PATH` | `server/focusguard.db` | SQLite database path used by `server/database.py`. |
+| `CAMERA_INDEX` | `0` | Default webcam index. |
 
-Lưu ý: nếu không đặt `JWT_SECRET_KEY`, server sẽ tự sinh key mới mỗi lần chạy. Khi đó token cũ sẽ mất hiệu lực sau khi restart server.
+Note: if `JWT_SECRET_KEY` is not set, the server generates a new secret on every startup. Existing tokens become invalid after a restart.
 
-## Cách Chạy Hệ Thống
+## Running the System
 
-### 1. Chạy server
+### 1. Start the server
 
 ```bash
 python run_server.py
 ```
 
-Server mặc định chạy tại:
+Default server URLs:
 
 - API root: `http://localhost:8000/`
-- Login web: `http://localhost:8000/login`
+- Web login: `http://localhost:8000/login`
 - Dashboard: `http://localhost:8000/dashboard`
 - Admin panel: `http://localhost:8000/admin`
 - Exams page: `http://localhost:8000/exams`
 
-Khi server khởi động, database sẽ được tạo nếu chưa tồn tại và tài khoản admin mặc định sẽ được tạo.
+When the server starts, it initializes the database if needed and creates the default admin account if it does not already exist.
 
-### 2. Chạy client sinh viên
+### 2. Start the student client
 
 ```bash
 python run_client.py
 ```
 
-Các option hữu ích:
+Useful options:
 
 ```bash
 python run_client.py --server 127.0.0.1:8000
 python run_client.py --student-id student01 --skip-login
 ```
 
-Luồng client bình thường:
+Normal client flow:
 
-1. Mở dialog đăng nhập.
-2. Sinh viên đăng nhập bằng tài khoản được admin/teacher tạo.
-3. Sinh viên nhập mã kỳ thi.
-4. Client mở kiosk window nếu tham gia kỳ thi thật.
-5. AI engine bắt đầu đọc webcam và gửi vi phạm về server.
+1. The login dialog opens.
+2. The student signs in with an account created by an admin or teacher.
+3. The student enters the exam code.
+4. The client opens the kiosk window for a real student exam.
+5. The AI engine starts reading webcam frames and reporting violations to the server.
 
-### 3. Chạy dashboard desktop
+### 3. Start the desktop dashboard
 
 ```bash
 python run_dashboard.py
 ```
 
-File này gọi `gui/dashboard.py`. Ngoài dashboard desktop, project cũng có dashboard web trong `server/templates/`.
+This entrypoint calls `gui/dashboard.py`. The project also includes web dashboard templates under `server/templates/`.
 
-### 4. Test camera và face detector
+### 4. Test the camera and face detector
 
 ```bash
 python test_face_detector.py
 ```
 
-Script này mở webcam, chạy MediaPipe Face Landmarker và vẽ landmark trực tiếp lên frame. Nhấn `q` để thoát.
+This script opens the webcam, runs MediaPipe Face Landmarker, and draws facial landmarks on the live frame. Press `q` to quit.
 
-## Tài Khoản Và Quy Trình Sử Dụng
+## Accounts and Workflow
 
-### Tài khoản mặc định
+### Default Account
 
-Khi database được khởi tạo, hệ thống tạo admin mặc định:
+When the database is initialized, the system creates this default admin account:
 
 ```text
 Username: admin
@@ -358,122 +358,122 @@ Password: admin123
 Role: admin
 ```
 
-Tài khoản này được đánh dấu `must_change_password=True`, nên trong môi trường thật cần đổi mật khẩu ngay.
+The default account is marked with `must_change_password=True`, so the password should be changed immediately in a real environment.
 
-### Vai trò
+### Roles
 
-| Role | Quyền chính |
+| Role | Main Permissions |
 |---|---|
-| `admin` | Quản lý user, tạo teacher/student, quản lý exam, xem report |
-| `teacher` | Tạo và quản lý exam của mình, xem participant/violation/report |
-| `student` | Đăng nhập client, join exam, được giám sát trong quá trình thi |
+| `admin` | Manage users, create teacher/student accounts, manage exams, view reports |
+| `teacher` | Create and manage owned exams, view participants, violations, and reports |
+| `student` | Sign in through the client, join exams, and be monitored during exams |
 
-### Quy trình đề xuất
+### Recommended Workflow
 
-1. Admin đăng nhập dashboard.
-2. Admin tạo tài khoản teacher và student.
-3. Teacher đăng nhập và tạo kỳ thi.
-4. Teacher cung cấp `exam_code` cho sinh viên.
-5. Student chạy client, đăng nhập và join exam bằng `exam_code`.
-6. Teacher mở dashboard để theo dõi kết nối và vi phạm realtime.
-7. Sau kỳ thi, teacher tải report PDF/Excel.
+1. Admin signs in to the dashboard.
+2. Admin creates teacher and student accounts.
+3. Teacher signs in and creates an exam.
+4. Teacher gives the generated `exam_code` to students.
+5. Student runs the client, signs in, and joins the exam with the `exam_code`.
+6. Teacher opens the dashboard to monitor connections and violations in realtime.
+7. After the exam, teacher downloads PDF or Excel reports.
 
-## API Chính
+## Main API Endpoints
 
 ### Auth
 
-| Method | Endpoint | Mô tả |
+| Method | Endpoint | Description |
 |---|---|---|
-| `POST` | `/api/auth/login` | Đăng nhập, nhận JWT token |
-| `GET` | `/api/auth/me` | Lấy thông tin user hiện tại |
-| `POST` | `/api/auth/change-password` | Đổi mật khẩu |
-| `POST` | `/api/auth/users` | Tạo user mới, admin only |
-| `GET` | `/api/auth/users` | Liệt kê user, admin/teacher |
-| `POST` | `/api/auth/users/bulk` | Tạo nhiều user, admin only |
+| `POST` | `/api/auth/login` | Sign in and receive a JWT token |
+| `GET` | `/api/auth/me` | Get the current user profile |
+| `POST` | `/api/auth/change-password` | Change the current user's password |
+| `POST` | `/api/auth/users` | Create a new user, admin only |
+| `GET` | `/api/auth/users` | List users, admin/teacher |
+| `POST` | `/api/auth/users/bulk` | Create multiple users, admin only |
 
 ### Exams
 
-| Method | Endpoint | Mô tả |
+| Method | Endpoint | Description |
 |---|---|---|
-| `POST` | `/api/exams` | Tạo kỳ thi mới |
-| `GET` | `/api/exams` | Danh sách kỳ thi |
-| `GET` | `/api/exams/{exam_code}` | Chi tiết kỳ thi |
-| `POST` | `/api/exams/{exam_code}/join` | Student tham gia kỳ thi |
-| `POST` | `/api/exams/{exam_code}/start` | Bắt đầu kỳ thi |
-| `POST` | `/api/exams/{exam_code}/end` | Kết thúc kỳ thi |
-| `GET` | `/api/exams/{exam_code}/participants` | Danh sách thí sinh |
-| `POST` | `/api/exams/{exam_code}/violation` | Ghi nhận vi phạm |
-| `GET` | `/api/exams/{exam_code}/violations` | Danh sách vi phạm |
+| `POST` | `/api/exams` | Create a new exam |
+| `GET` | `/api/exams` | List exams |
+| `GET` | `/api/exams/{exam_code}` | Get exam details |
+| `POST` | `/api/exams/{exam_code}/join` | Join an exam as a student |
+| `POST` | `/api/exams/{exam_code}/start` | Start an exam |
+| `POST` | `/api/exams/{exam_code}/end` | End an exam |
+| `GET` | `/api/exams/{exam_code}/participants` | List exam participants |
+| `POST` | `/api/exams/{exam_code}/violation` | Record a violation |
+| `GET` | `/api/exams/{exam_code}/violations` | List exam violations |
 
 ### Reports
 
-| Method | Endpoint | Mô tả |
+| Method | Endpoint | Description |
 |---|---|---|
-| `GET` | `/api/reports/{exam_code}/pdf` | Tải báo cáo PDF |
-| `GET` | `/api/reports/{exam_code}/excel` | Tải báo cáo Excel |
-| `GET` | `/api/reports/{exam_code}/statistics` | Thống kê kỳ thi |
+| `GET` | `/api/reports/{exam_code}/pdf` | Download the PDF report |
+| `GET` | `/api/reports/{exam_code}/excel` | Download the Excel report |
+| `GET` | `/api/reports/{exam_code}/statistics` | Get exam statistics |
 
 ### WebSocket
 
-| Endpoint | Mô tả |
+| Endpoint | Description |
 |---|---|
-| `/ws` | Client sinh viên kết nối, gửi connect/heartbeat/violation |
-| `/ws/dashboard` | Dashboard nhận realtime student status và violation |
+| `/ws` | Student clients connect here and send connect/heartbeat/violation messages |
+| `/ws/dashboard` | Dashboards connect here to receive realtime student status and violations |
 
 ## AI Proctoring Pipeline
 
-Pipeline trong client chạy trong `ProctorEngine`:
+The client-side pipeline runs inside `ProctorEngine`:
 
-1. Đọc frame từ webcam bằng OpenCV.
-2. Dùng MediaPipe Face Landmarker để lấy landmark khuôn mặt.
-3. Tính các đặc trưng hình học:
-   - pitch, yaw, roll từ head pose PnP;
+1. Read frames from the webcam using OpenCV.
+2. Use MediaPipe Face Landmarker to extract facial landmarks.
+3. Calculate geometric features:
+   - pitch, yaw, and roll from PnP head pose estimation;
    - eye gaze ratio;
    - iris gaze;
    - mouth aspect ratio.
-4. Đưa feature vector vào `BehaviorClassifier`.
-5. Dùng rule override cho một số trường hợp gaze/head-down nhạy hơn model.
-6. Dùng `ViolationDetector` để xác nhận vi phạm theo nhiều frame liên tiếp và thời lượng liên tục.
-7. Khi vi phạm hợp lệ:
-   - capture frame hiện tại;
-   - overlay tên vi phạm và timestamp;
-   - encode JPEG sang base64;
-   - gửi REST request về `/api/exams/{exam_code}/violation`;
-   - server lưu record, lưu ảnh evidence và broadcast dashboard.
+4. Pass the feature vector to `BehaviorClassifier`.
+5. Apply rule-based overrides for selected gaze and head-down cases where a stricter signal is useful.
+6. Use `ViolationDetector` to confirm a violation across consecutive frames and continuous duration.
+7. When a violation is confirmed:
+   - capture the current frame;
+   - overlay the violation name and timestamp;
+   - encode the JPEG image as base64;
+   - send a REST request to `/api/exams/{exam_code}/violation`;
+   - let the server save the violation record, store the evidence image, and broadcast the event to dashboards.
 
-Các label hiện tại:
+Current labels:
 
-| Label | Tên |
+| Label | Name |
 |---|---|
 | `0` | Normal |
 | `1` | Looking Left |
 | `2` | Looking Right |
 | `3` | Head Down |
 
-## Cơ Sở Dữ Liệu
+## Database
 
-Project dùng SQLite qua SQLAlchemy. Database mặc định nằm tại:
+The project uses SQLite through SQLAlchemy. The default database location is:
 
 ```text
 server/focusguard.db
 ```
 
-Các bảng chính:
+Main tables:
 
-| Bảng | Nội dung |
+| Table | Content |
 |---|---|
-| `users` | Tài khoản admin/teacher/student |
-| `exam_sessions` | Thông tin kỳ thi, mã kỳ thi, teacher, trạng thái |
-| `exam_participants` | Sinh viên tham gia kỳ thi, online status, số vi phạm |
-| `violations` | Vi phạm, confidence, timestamp, đường dẫn screenshot |
+| `users` | Admin, teacher, and student accounts |
+| `exam_sessions` | Exam metadata, exam code, teacher owner, and status |
+| `exam_participants` | Student exam participation, online status, violation count |
+| `violations` | Violation records, confidence, timestamp, screenshot path |
 
-Ảnh bằng chứng vi phạm được lưu tại:
+Violation evidence images are stored in:
 
 ```text
 server/uploads/violations/
 ```
 
-Báo cáo được sinh trong:
+Generated reports are stored in:
 
 ```text
 server/reports/
@@ -481,13 +481,13 @@ server/reports/
 
 ## Testing
 
-Chạy toàn bộ test:
+Run the full test suite:
 
 ```bash
 pytest
 ```
 
-Chạy từng nhóm test:
+Run individual test groups:
 
 ```bash
 pytest tests/test_integration.py -v
@@ -498,31 +498,31 @@ pytest tests/test_reports.py -v
 pytest tests/test_anti_cheat.py -v
 ```
 
-`tests/conftest.py` tự khởi động server test bằng subprocess và dùng database test riêng:
+`tests/conftest.py` starts a test server subprocess and uses a separate test database:
 
 ```text
 tests/test_focusguard.db
 ```
 
-Một số test cần port `8000` còn trống. Nếu server khác đang chạy trên port này, hãy tắt server đó trước khi chạy test.
+Some tests require port `8000` to be available. Stop any existing server on that port before running the tests.
 
-## Build Và Đóng Gói
+## Build and Packaging
 
-### Build executable bằng PyInstaller
+### Build Executables with PyInstaller
 
-Cài PyInstaller:
+Install PyInstaller:
 
 ```bash
 pip install pyinstaller
 ```
 
-Chạy build:
+Run the build script:
 
 ```bash
 python build.py
 ```
 
-Một số option:
+Useful options:
 
 ```bash
 python build.py --client
@@ -530,22 +530,22 @@ python build.py --server
 python build.py --all --clean
 ```
 
-Lưu ý: `build.py` yêu cầu các file `.spec` tương ứng. Nếu thiếu spec file, script sẽ báo lỗi.
+Note: `build.py` expects the corresponding `.spec` files to exist. If a spec file is missing, the script will report an error.
 
-### Đóng gói installer Windows
+### Package a Windows Installer
 
-Trên Windows:
+On Windows:
 
-1. Cài Inno Setup 6.
-2. Chạy:
+1. Install Inno Setup 6.
+2. Run:
 
 ```bat
 build_windows.bat
 ```
 
-3. Khi script hỏi có muốn đóng gói thành setup installer, chọn `y`.
+3. When prompted to package a setup installer, choose `y`.
 
-Installer config nằm trong:
+The installer configuration is stored in:
 
 ```text
 installer.iss
@@ -553,73 +553,74 @@ installer.iss
 
 ## Troubleshooting
 
-### Không mở được webcam
+### Webcam Cannot Be Opened
 
-- Kiểm tra webcam có đang bị app khác sử dụng không.
-- Thử đổi camera index:
+- Check whether another application is already using the webcam.
+- Try a different camera index.
+- Run the client in test mode:
 
 ```bash
 python run_client.py --skip-login --student-id TEST --server 127.0.0.1:8000
 ```
 
-Hoặc chỉnh `Config.CAMERA_INDEX` trong `shared/constants.py`.
+You can also adjust `Config.CAMERA_INDEX` in `shared/constants.py`.
 
-### MediaPipe model không tải được
+### MediaPipe Model Cannot Be Downloaded
 
-`FaceDetector` sẽ tự tải `face_landmarker.task` nếu thiếu. Nếu máy không có mạng, đặt file model thủ công vào:
+`FaceDetector` automatically downloads `face_landmarker.task` if it is missing. If the machine has no network access, place the model manually at:
 
 ```text
 ml/models/face_landmarker.task
 ```
 
-### Không load được behavior model
+### Behavior Model Cannot Be Loaded
 
-Nếu thiếu:
+If this file is missing:
 
 ```text
 ml/models/behavior_model.pkl
 ```
 
-hãy train lại model:
+train the model again:
 
 ```bash
 python ml/train_model.py
 ```
 
-### Client không kết nối server
+### Client Cannot Connect to the Server
 
-- Kiểm tra server đang chạy tại đúng host/port.
-- Nếu client chạy trên máy khác, không dùng `127.0.0.1`; dùng IP LAN của máy server:
+- Confirm the server is running on the expected host and port.
+- If the client runs on another machine, do not use `127.0.0.1`; use the server machine's LAN IP:
 
 ```bash
 python run_client.py --server 192.168.1.10:8000
 ```
 
-- Kiểm tra firewall cho port `8000`.
+- Check firewall rules for port `8000`.
 
-### Token mất hiệu lực sau khi restart server
+### Tokens Become Invalid After Server Restart
 
-Đặt `JWT_SECRET_KEY` cố định trong `.env`. Nếu không, server tự sinh secret mới mỗi lần chạy.
+Set a fixed `JWT_SECRET_KEY` in `.env`. Otherwise, the server generates a new key on every startup.
 
-### Anti-cheat Windows không chặn được một số phím tắt
+### Windows Anti-cheat Does Not Block Some Shortcuts
 
-Một số chức năng OS-level như chặn Task Manager hoặc hook phím có thể cần quyền Administrator và có thể bị giới hạn bởi policy của Windows.
+Some OS-level features, such as Task Manager blocking or keyboard hooks, may require Administrator privileges and may also be limited by Windows policy settings.
 
-### Port 8000 đã được dùng
+### Port 8000 Is Already in Use
 
-Đổi port trong `.env`:
+Change the port in `.env`:
 
 ```env
 SERVER_PORT=8001
 ```
 
-Sau đó chạy client với port tương ứng:
+Then run the client with the matching port:
 
 ```bash
 python run_client.py --server 127.0.0.1:8001
 ```
 
-## Tài Liệu Bổ Sung
+## Additional Documentation
 
 - [Installation Guide](docs/INSTALLATION.md)
 - [Teacher Manual](docs/USER_MANUAL_TEACHER.md)
@@ -627,7 +628,7 @@ python run_client.py --server 127.0.0.1:8001
 
 ## License
 
-MIT License. Xem chi tiết trong [LICENSE](LICENSE).
+MIT License. See [LICENSE](LICENSE) for details.
 
 ## Author
 
