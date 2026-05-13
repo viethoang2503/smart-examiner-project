@@ -13,6 +13,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from client.ai_engine.face_detector import FaceDetector
 
 
+CAMERA_FLIP_CODE = 1  # Mirror horizontally: left becomes right.
+
+
 def main():
     print("=" * 60)
     print("FocusGuard - Face Detector Test")
@@ -58,6 +61,8 @@ def main():
             if not ret:
                 print("❌ Failed to grab frame")
                 break
+
+            frame = cv2.flip(frame, CAMERA_FLIP_CODE)
             
             frame_count += 1
             
